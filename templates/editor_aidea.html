@@ -1,0 +1,537 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+		<title>AIDEA CAD Editor - Two Storey Building</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=100, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			.label{
+				position: absolute;
+				font-family: "Helvetica Narrow","Arial Narrow",Tahoma,Arial,Helvetica,sans-serif;
+				padding: 2px;
+				font-size: 9px;
+				font-weight: 300;
+				font-stretch: ultra-condensed;
+				background: rgba( 0, 0, 0, 0 );
+			}
+			
+			.aidea-controls {
+				position: absolute;
+				top: 10px;
+				right: 10px;
+				z-index: 1000;
+				background: rgba(255, 255, 255, 0.9);
+				padding: 10px;
+				border-radius: 5px;
+				box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+			}
+			
+			.aidea-controls button {
+				display: block;
+				width: 200px;
+				margin: 5px 0;
+				padding: 10px;
+				background: #007bff;
+				color: white;
+				border: none;
+				border-radius: 3px;
+				cursor: pointer;
+				font-size: 14px;
+			}
+			
+			.aidea-controls button:hover {
+				background: #0056b3;
+			}
+			
+			.aidea-controls button:disabled {
+				background: #6c757d;
+				cursor: not-allowed;
+			}
+			
+			.model-info {
+				background: rgba(240, 248, 255, 0.9);
+				padding: 10px;
+				margin: 10px 0;
+				border-radius: 3px;
+				font-size: 12px;
+				border-left: 4px solid #007bff;
+			}
+			
+			.cad-toolbar {
+				box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+				backdrop-filter: blur(10px);
+				border: 1px solid rgba(255,255,255,0.2);
+			}
+			
+			.cad-toolbar button {
+				transition: all 0.2s ease;
+				border: 1px solid #dee2e6;
+				border-radius: 4px;
+				padding: 8px 12px;
+				font-size: 12px;
+				cursor: pointer;
+				background: #ffffff;
+			}
+			
+			.cad-toolbar button:hover {
+				background: #e9ecef;
+				border-color: #adb5bd;
+				transform: translateY(-1px);
+			}
+			
+			.cad-toolbar button:active {
+				transform: translateY(0);
+				box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+			}
+			
+			.cad-toolbar input[type="number"] {
+				border: 1px solid #ced4da;
+				border-radius: 4px;
+				padding: 4px 8px;
+				font-size: 12px;
+			}
+			
+			.cad-toolbar input[type="checkbox"] {
+				margin: 0 5px;
+			}
+		</style>
+{% endblock %}
+
+{% block body %}
+
+		<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+		<script src="{{ url_for('static', filename='js/jquery-3.3.1.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>	
+		<script src="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.js"></script>
+		<link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet" />
+		<link id="theme" href="{{ url_for('static', filename='css/light.css') }}" rel="stylesheet" />
+		
+		<script src="{{ url_for('static', filename='js/build/three.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/libs/system.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/controls/EditorControls.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/controls/TransformControls.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/libs/jszip.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/libs/inflate.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/renderers/Projector.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/renderers/RaytracingRenderer.js') }}"></script>
+		
+		<script src="{{ url_for('static', filename='js/libs/codemirror/codemirror.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/codemirror/mode/javascript.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/codemirror/mode/glsl.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/esprima.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/jsonlint.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/glslprep.min.js') }}"></script>
+		
+		<script src="{{ url_for('static', filename='js/libs/codemirror/addon/dialog.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/codemirror/addon/show-hint.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/codemirror/addon/tern.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/acorn/acorn.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/acorn/acorn_loose.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/acorn/walk.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/polyfill.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/signal.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/tern.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/def.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/comment.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/infer.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ternjs/doc_comment.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/tern-threejs/threejs.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/signals.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ui.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/ui.three.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/app.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Player.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Script.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Storage.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Editor.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Config.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/History.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Loader.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.File.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Run.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Edit.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Add.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.View.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Play.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Examples.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Help.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Menubar.Status.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Scene.js') }}"></script>	
+		<script src="{{ url_for('static', filename='js/Sidebar.Nodes.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Elements.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Supports.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Results.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Sections.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Materials.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Pointloads.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Distloads.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Settings.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Settings.Shortcuts.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Settings.Viewport.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Properties.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Object.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Geometry.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Geometry.Geometry.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Geometry.BufferGeometry.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Geometry.Modifiers.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.History.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Strings.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Toolbar.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Viewport.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Viewport.Info.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Command.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/AddObjectCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/RemoveObjectCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/MoveObjectCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetPositionCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetRotationCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetScaleCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetValueCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetUuidCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetColorCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetGeometryCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetGeometryValueCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/MultiCmdsCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/AddScriptCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/RemoveScriptCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetScriptValueCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetMaterialCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetMaterialValueCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetMaterialColorCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetMaterialMapCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/commands/SetSceneCommand.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/html2canvas.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/dat.gui.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/three.html.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/examples/js/utils/SceneUtils.js') }}"></script>
+		
+		<!--snap stuff-->
+		<script src="{{ url_for('static', filename='js/Octree.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/object_hash.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/GridSnap.js') }}"></script>
+		
+		<!--richer lines-->	
+		<script src="{{ url_for('static', filename='js/libs/lines/THREE.MeshLine.js') }}"></script>
+		
+		<!--Labels-->
+		<script src="{{ url_for('static', filename='js/examples/js/renderers/CSS2DRenderer.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/labels/THREE.TextTexture.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/labels/THREE.TextSprite.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/libs/labels/THREE.spritetext.js') }}"></script>
+		
+		<!-- Vision-specific modules-->
+		<script src="{{ url_for('static', filename='js/makeTextSprite.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/drawNodes.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/drawElements.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/drawPointLoads.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/drawDistLoads.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/addSections.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/customSignals.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/resultsMqn.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/resusltsDisplacements.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/deformedStructure.js') }}"></script>
+		
+		<!-- AIDEA Integration -->
+		<script src="{{ url_for('static', filename='js/drawFromAidea.js') }}"></script>
+		
+		<!-- Interactive CAD Tools -->
+		<script src="{{ url_for('static', filename='js/ValidationHelper.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/InteractiveNodeCreator.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/InteractiveElementCreator.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/CADToolbar.js') }}"></script>
+
+		<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.css">
+		<link rel="stylesheet" type="text/css" href="https://handsontable.com/static/css/main.css">
+		<link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/light.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/monokai.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/dialog.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/show-hint.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/tern.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.min.css') }}">
+
+		<!-- AIDEA Controls Panel -->
+		<div class="aidea-controls">
+			<h3 style="margin: 0 0 10px 0; color: #333;">AIDEA CAD Controls</h3>
+			<div class="model-info">
+				<strong>Two-Storey Building Model</strong><br>
+				<small>6m × 4m × 6m (height)<br>
+				Steel frame construction</small>
+			</div>
+			<button id="loadModelBtn" onclick="loadTwoStoreyBuilding(editor)">
+				🏗️ Load Two-Storey Building
+			</button>
+			<button id="runAnalysisBtn" onclick="runStructuralAnalysis(editor)" disabled>
+				⚡ Run Structural Analysis
+			</button>
+			<button id="showResultsBtn" onclick="showAnalysisResults()" disabled>
+				📊 Show Results
+			</button>
+			<button id="clearModelBtn" onclick="clearModel(editor)">
+				🗑️ Clear Model
+			</button>
+			<div id="modelStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
+				Ready to load model
+			</div>
+		</div>
+		
+		<script>
+			window.URL = window.URL || window.webkitURL;
+			window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+			// Initialize the editor
+			var editor = new Editor();
+
+			var viewport = new Viewport( editor );
+			document.body.appendChild( viewport.dom );
+			
+			var toolbar = new Toolbar( editor );
+			document.body.appendChild( toolbar.dom );
+			
+			var script = new Script( editor );
+			document.body.appendChild( script.dom );
+			
+			var player = new Player( editor );
+			document.body.appendChild( player.dom );
+			
+			var menubar = new Menubar( editor );
+			document.body.appendChild( menubar.dom );
+			
+			var sidebar = new Sidebar( editor );
+			document.body.appendChild( sidebar.dom );
+			
+			// Initialize CAD Toolbar
+			var cadToolbar = new CADToolbar( editor );
+			document.body.appendChild( cadToolbar.container.dom );
+			
+			// Make CAD toolbar globally accessible
+			window.cadToolbar = cadToolbar;
+			
+			var modal = new UI.Modal();
+			document.body.appendChild( modal.dom );
+
+			editor.setTheme( editor.config.getKey( 'theme' ) );
+
+			// AIDEA-specific functions
+			function updateModelStatus(message, isError = false) {
+				var statusDiv = document.getElementById('modelStatus');
+				statusDiv.textContent = message;
+				statusDiv.style.color = isError ? '#dc3545' : '#28a745';
+			}
+
+			function clearModel(editor) {
+				editor.clear();
+				updateModelStatus('Model cleared');
+				document.getElementById('runAnalysisBtn').disabled = true;
+				document.getElementById('showResultsBtn').disabled = true;
+			}
+
+			function showAnalysisResults() {
+				if (window.analysisResults) {
+					displayAnalysisResults(window.analysisResults);
+				} else {
+					alert('No analysis results available. Please run analysis first.');
+				}
+			}
+
+			// Override the loadTwoStoreyBuilding function to update UI
+			var originalLoadFunction = window.loadTwoStoreyBuilding;
+			window.loadTwoStoreyBuilding = function(editor) {
+				updateModelStatus('Loading model...');
+				document.getElementById('loadModelBtn').disabled = true;
+				
+				// Call original function with success callback
+				$.ajax({
+					type: "POST",
+					url: "/load",
+					data: JSON.stringify({}),
+					contentType: "application/json; charset=utf-8",
+					dataType: 'text',
+					success: function(response) {
+						try {
+							var parts = response.split('|');
+							if (parts.length >= 6) {
+								var nodes = JSON.parse(parts[0]);
+								var elements = JSON.parse(parts[1]);
+								
+								editor.clear();
+								drawFromAidea(editor, nodes, elements);
+								
+								updateModelStatus(`Model loaded: ${nodes.data.length} nodes, ${elements.data.length} elements`);
+								document.getElementById('runAnalysisBtn').disabled = false;
+								
+								// Store data globally
+								window.currentNodes = nodes;
+								window.currentElements = elements;
+								window.currentPointLoads = JSON.parse(parts[2]);
+								window.currentDistLoads = JSON.parse(parts[3]);
+								window.currentMaterials = JSON.parse(parts[4]);
+								window.currentSections = JSON.parse(parts[5]);
+								
+							} else {
+								throw new Error('Invalid response format');
+							}
+						} catch (e) {
+							updateModelStatus('Error loading model: ' + e.message, true);
+						} finally {
+							document.getElementById('loadModelBtn').disabled = false;
+						}
+					},
+					error: function(xhr, status, error) {
+						updateModelStatus('Error loading model: ' + error, true);
+						document.getElementById('loadModelBtn').disabled = false;
+					}
+				});
+			};
+
+			// Override the runStructuralAnalysis function to update UI
+			window.runStructuralAnalysis = function(editor) {
+				updateModelStatus('Running analysis...');
+				document.getElementById('runAnalysisBtn').disabled = true;
+				
+				$.ajax({
+					type: "POST",
+					url: "/yellow",
+					data: JSON.stringify({}),
+					contentType: "application/json; charset=utf-8",
+					dataType: 'json',
+					success: function(response) {
+						if (response.error) {
+							updateModelStatus('Analysis failed: ' + response.error, true);
+						} else {
+							window.analysisResults = response;
+							updateModelStatus('Analysis completed successfully');
+							document.getElementById('showResultsBtn').disabled = false;
+							
+							// Show quick summary
+							var nodeCount = Object.keys(response.displ || {}).length;
+							var memberCount = Object.keys(response.mqn || {}).length;
+							setTimeout(() => {
+								updateModelStatus(`Analysis complete: ${nodeCount} nodes, ${memberCount} members analyzed`);
+							}, 2000);
+						}
+					},
+					error: function(xhr, status, error) {
+						updateModelStatus('Analysis failed: ' + error, true);
+					},
+					complete: function() {
+						document.getElementById('runAnalysisBtn').disabled = false;
+					}
+				});
+			};
+
+			// Auto-load the model on page load
+			window.addEventListener('load', function() {
+				setTimeout(() => {
+					console.log('Auto-loading two-storey building model...');
+					loadTwoStoreyBuilding(editor);
+				}, 1000);
+			});
+
+			// Handle window resize
+			function onWindowResize( event ) {
+				editor.signals.windowResize.dispatch();
+			}
+
+			window.addEventListener( 'resize', onWindowResize, false );
+			onWindowResize();
+
+			// Custom signal functions 
+			labels = editor.labels
+			axes = editor.axes
+			editor.sceneHelpers.add(labels)
+			editor.sceneHelpers.add(axes)
+
+			editor.signals.objectRemoved.add( function ( object ) {
+				axis = editor.sceneHelpers.getObjectByName(object.name+'axis')
+				editor.sceneHelpers.remove(axis)
+				lbl = editor.sceneHelpers.getObjectByName(object.name+'lbl')
+				editor.sceneHelpers.remove(lbl)
+			} );
+
+			editor.signals.objectAdded.add( function ( object ) {
+				if (object.userData.type == 'element'){
+					var label = new SpriteText(object.userData.en, 0.015);
+					x = object.userData.label_position.x+0.1
+					y = object.userData.label_position.y+0.1
+					z = object.userData.label_position.z+0.1
+					label.position.set(x, y, z);
+			
+					label.name = object.name+'lbl';
+					labels.add(label);
+
+					var localAxes = new THREE.Object3D();
+					var origin = object.userData.label_position;        
+					var alength = 0.6;
+					var hex;
+
+					hex = 0xff0000;
+					arrowHelper = new THREE.ArrowHelper( object.userData.xLocal, origin, alength, hex );
+					localAxes.add ( arrowHelper );
+					
+					hex = 0x0000ff;
+					arrowHelper = new THREE.ArrowHelper( object.userData.yLocal, origin, alength, hex );
+					localAxes.add ( arrowHelper );
+				
+					hex = 0x00ff00;
+					arrowHelper = new THREE.ArrowHelper( object.userData.zLocal, origin, alength, hex );
+					localAxes.add ( arrowHelper );
+					localAxes.name = object.name+'axis'
+					editor.axes.add(localAxes)
+					editor.sceneHelpers.add(localAxes)
+					editor.sceneHelpers.add(label);
+
+				} else if (object.userData.type == 'node'){
+					var label = new SpriteText(object.userData.nn, 0.018);
+					x = object.userData.label_position.x+0.1
+					y = object.userData.label_position.y+0.1
+					z = object.userData.label_position.z+0.1
+					label.position.set(x, y, z);
+			
+					label.name = object.name+'lbl';
+					labels.add(label)
+					editor.sceneHelpers.add(label)
+				}
+			} );
+
+			editor.signals.editorCleared.add( function (  ) {
+				editor.label = new THREE.Object3D();
+				editor.label.name = 'Labels'
+			} );
+
+		</script>
+		
+		<style>
+			table.gridtable {
+				font-family: verdana,arial,sans-serif;
+				font-size:11px;
+				color:#333333;
+				border-width: 1px;
+				border-color: #666666;
+				border-collapse: collapse;
+			}
+			table.gridtable th {
+				border-width: 1px;
+				padding: 8px;
+				border-style: solid;
+				border-color: #666666;
+				background-color: #dedede;
+			}
+			table.gridtable td {
+				border-width: 1px;
+				padding: 8px;
+				border-style: solid;
+				border-color: #666666;
+				background-color: #ffffff;
+			}
+		</style>
+	
+{% endblock %}

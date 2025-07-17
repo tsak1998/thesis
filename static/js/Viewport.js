@@ -322,13 +322,21 @@ var Viewport = function ( editor ) {
 		
 		if ( object !== null && object !== scene && object !== camera ) {
 			if (object.userData.type=='element'){
-				object.material.color.setHex( 0x00CCFF );
+				if (object.material && object.material.color) {
+					object.material.color.setHex( 0x00CCFF );
+				}
 			}else if (object.userData.type=='node'){
-				object.material.emissive.setHex( 0x00CCFF );
+				if (object.material && object.material.emissive) {
+					object.material.emissive.setHex( 0x00CCFF );
+				}
 			}else if (object.userData.type=='p_load'){
-				object.material.color.setHex( 0x00CCFF );
+				if (object.material && object.material.color) {
+					object.material.color.setHex( 0x00CCFF );
+				}
 			}else {
-				object.material.color.setHex( 0x00CCFF );
+				if (object.material && object.material.color) {
+					object.material.color.setHex( 0x00CCFF );
+				}
 			}
 
 		} else if ( editor.selected == null) {
@@ -344,13 +352,21 @@ var Viewport = function ( editor ) {
 	signals.objectDeselected.add( function ( object ) {
 			if(editor.selected.name!='Scene'){
 				if (object.userData.type=='element'){
-					object.material.color.setHex( 0x383838 );
+					if (object.material && object.material.color) {
+						object.material.color.setHex( 0x383838 );
+					}
 				}else if (object.userData.type=='node'){
-					object.material.emissive.setHex( 0x000066 );
+					if (object.material && object.material.emissive) {
+						object.material.emissive.setHex( 0x000066 );
+					}
 				}else if (object.userData.type=='p_load'){
-					object.material.color.setHex( 0xff0000 );
+					if (object.material && object.material.color) {
+						object.material.color.setHex( 0xff0000 );
+					}
 				}else {
-					object.material.color.setHex( 0xD3D3D3 );
+					if (object.material && object.material.color) {
+						object.material.color.setHex( 0xD3D3D3 );
+					}
 				}
 			}
 		render();

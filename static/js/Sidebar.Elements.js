@@ -240,6 +240,20 @@ Sidebar.Elements = function ( editor ) {
 	buttonRow.add( btn );
 
 	container.add( buttonRow );
+	
+	// Add interactive element creation button
+	var interactiveButtonRow = new UI.Row();
+	var interactiveBtn = new UI.Button( '🔗 Interactive Mode' ).onClick( function () {
+		// Toggle interactive element creation
+		if (window.cadToolbar) {
+			window.cadToolbar.toggleElementCreation();
+		} else {
+			console.warn('CAD Toolbar not available');
+		}
+	} );
+	
+	interactiveButtonRow.add( interactiveBtn );
+	container.add( interactiveButtonRow );
 
  function buildOption( object, draggable ) {
 
