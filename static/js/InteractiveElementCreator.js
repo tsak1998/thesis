@@ -16,18 +16,19 @@ var InteractiveElementCreator = function(editor) {
     this.currentSectionId = 1;
     this.validator = new ValidationHelper();
     
-    // Materials for elements
-    this.elementMaterial = new THREE.LineBasicMaterial({
+    // Materials for elements - using utility function
+    this.elementMaterial = LineUtils.createStandardLineMaterial({
         color: 0x404040,
-        linewidth: 2
+        lineWidth: 12
     });
-    
-    this.previewMaterial = new THREE.LineBasicMaterial({
+
+    this.previewMaterial = LineUtils.createStandardLineMaterial({
         color: 0x00ff00,
-        linewidth: 3,
-        transparent: true,
-        opacity: 0.7
+        lineWidth: 12
     });
+    // Make preview material transparent
+    this.previewMaterial.transparent = true;
+    this.previewMaterial.opacity = 0.7;
     
     this.highlightMaterial = new THREE.MeshStandardMaterial({
         color: 0xffff00,
@@ -243,7 +244,12 @@ InteractiveElementCreator.prototype = {
         geometry.vertices.push(new THREE.Vector3(startPos.x, startPos.y, startPos.z));
         geometry.vertices.push(new THREE.Vector3(endPos.x, endPos.y, endPos.z));
         
-        this.previewLine = new THREE.Line(geometry, this.previewMaterial);
+        this.previewLine = LineUtils.createLineMesh(geometry, {
+            color: 0x00ff00,
+            lineWidth: 12
+        });
+        this.previewLine.material.transparent = true;
+        this.previewLine.material.opacity = 0.7;
         this.previewLine.name = 'PreviewLine';
         
         this.editor.scene.add(this.previewLine);
@@ -305,8 +311,11 @@ InteractiveElementCreator.prototype = {
         geometry.vertices.push(new THREE.Vector3(0, 0, 0));
         geometry.vertices.push(new THREE.Vector3(length, 0, 0));
         
-        // Create the element
-        var element = new THREE.Line(geometry, this.elementMaterial.clone());
+        // Create the element using utility function
+        var element = LineUtils.createLineMesh(geometry, {
+            color: 0x404040,
+            lineWidth: 12
+        });
         element.name = 'Element ' + this.elementCount;
         
         // Set element metadata

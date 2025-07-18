@@ -159,13 +159,14 @@
 		<script src="{{ url_for('static', filename='js/Menubar.Help.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Menubar.Status.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/Sidebar.Scene.js') }}"></script>	
+		<script src="{{ url_for('static', filename='js/Sidebar.Scene.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Nodes.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Elements.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Elements.Modern.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Materials.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Sections.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Supports.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Results.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/Sidebar.Sections.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/Sidebar.Materials.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Pointloads.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Distloads.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/Sidebar.Settings.js') }}"></script>
@@ -213,8 +214,11 @@
 		<script src="{{ url_for('static', filename='js/object_hash.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/GridSnap.js') }}"></script>
 		
-		<!--richer lines-->	
+		<!--richer lines-->
 		<script src="{{ url_for('static', filename='js/libs/lines/THREE.MeshLine.js') }}"></script>
+		
+		<!-- Line Utilities -->
+		<script src="{{ url_for('static', filename='js/utils/LineUtils.js') }}"></script>
 		
 		<!--Labels-->
 		<script src="{{ url_for('static', filename='js/examples/js/renderers/CSS2DRenderer.js') }}"></script>
@@ -242,11 +246,17 @@
 		<script src="{{ url_for('static', filename='js/InteractiveNodeCreator.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/InteractiveElementCreator.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/CADToolbar.js') }}"></script>
+		
+		<!-- Modern Grid Nodes Components -->
+		<script src="{{ url_for('static', filename='js/GridNodes.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/GridNodesUI.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/ModelMetadata.js') }}"></script>
 
 		<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.css">
 		<link rel="stylesheet" type="text/css" href="https://handsontable.com/static/css/main.css">
 		<link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet" />
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/light.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/monokai.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/dialog.css') }}">
@@ -273,6 +283,15 @@
 			</button>
 			<button id="clearModelBtn" onclick="clearModel(editor)">
 				🗑️ Clear Model
+			</button>
+			<button id="gridNodesBtn" onclick="toggleGridNodesPanel()" style="background: #28a745;">
+				🔲 Grid Nodes
+			</button>
+			<button id="modelMetadataBtn" onclick="toggleModelMetadataPanel()" style="background: #6f42c1;">
+				📋 Model Metadata
+			</button>
+			<button id="cadToolbarBtn" onclick="toggleCADToolbar()" style="background: #17a2b8;">
+				🛠️ CAD Tools
 			</button>
 			<div id="modelStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
 				Ready to load model
@@ -506,6 +525,120 @@
 				editor.label = new THREE.Object3D();
 				editor.label.name = 'Labels'
 			} );
+
+			// Initialize modern components after editor is ready
+			setTimeout(function() {
+				console.log('Initializing Grid Nodes for AIDEA CAD...');
+				
+				// Initialize Grid Nodes UI
+				if (typeof GridNodesUI !== 'undefined') {
+					window.gridNodesUI = new GridNodesUI(editor);
+					console.log('✅ Grid Nodes UI initialized');
+				}
+				
+				
+				// Initialize Model Metadata
+				if (typeof ModelMetadata !== 'undefined') {
+					window.modelMetadata = new ModelMetadata(editor);
+					console.log('✅ Model Metadata initialized');
+				}
+				
+				// Show welcome notification for new features
+				setTimeout(function() {
+					showGridNodesWelcome();
+				}, 2000);
+			}, 1500);
+			
+			// Grid Nodes panel toggle function
+			function toggleGridNodesPanel() {
+				if (window.gridNodesUI) {
+					window.gridNodesUI.toggle();
+				}
+			}
+			
+			// Model Metadata panel toggle function
+			function toggleModelMetadataPanel() {
+				if (window.modelMetadata) {
+					window.modelMetadata.toggle();
+				}
+			}
+			
+			// CAD Toolbar toggle function
+			function toggleCADToolbar() {
+				if (window.cadToolbar) {
+					window.cadToolbar.toggle();
+				}
+			}
+			
+			// Welcome notification for Grid Nodes
+			function showGridNodesWelcome() {
+				var notification = document.createElement('div');
+				notification.style.cssText = `
+					position: fixed;
+					top: 20px;
+					left: 20px;
+					background: linear-gradient(135deg, #28a745, #1e7e34);
+					color: white;
+					padding: 16px 20px;
+					border-radius: 8px;
+					box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+					z-index: 10000;
+					font-weight: 500;
+					max-width: 300px;
+					animation: slideInLeft 0.3s ease-out;
+					cursor: pointer;
+				`;
+				
+				notification.innerHTML = `
+					<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+						<span style="font-size: 20px;">🔲</span>
+						<strong>Grid Nodes Available!</strong>
+					</div>
+					<div style="font-size: 14px; opacity: 0.9; line-height: 1.4;">
+						New transparent grid system:
+						<br>• Click "🔲 Grid Nodes" to open
+						<br>• Configurable size & spacing
+						<br>• Toggle visibility (Ctrl+Shift+G)
+						<br>• Modern UI controls
+					</div>
+				`;
+				
+				// Add animation
+				var style = document.createElement('style');
+				style.textContent = `
+					@keyframes slideInLeft {
+						from { transform: translateX(-100%); opacity: 0; }
+						to { transform: translateX(0); opacity: 1; }
+					}
+				`;
+				document.head.appendChild(style);
+				
+				document.body.appendChild(notification);
+				
+				// Auto-hide after 8 seconds
+				setTimeout(function() {
+					notification.style.transition = 'all 0.3s ease-out';
+					notification.style.transform = 'translateX(-100%)';
+					notification.style.opacity = '0';
+					setTimeout(function() {
+						if (notification.parentNode) {
+							document.body.removeChild(notification);
+						}
+					}, 300);
+				}, 8000);
+				
+				// Click to dismiss
+				notification.onclick = function() {
+					notification.style.transition = 'all 0.3s ease-out';
+					notification.style.transform = 'translateX(-100%)';
+					notification.style.opacity = '0';
+					setTimeout(function() {
+						if (notification.parentNode) {
+							document.body.removeChild(notification);
+						}
+					}, 300);
+				};
+			}
 
 		</script>
 		

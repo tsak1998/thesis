@@ -19,6 +19,7 @@ var CADToolbar = function(editor) {
     this.container.setTop('10px');
     this.container.setLeft('10px');
     this.container.setWidth('300px');
+    this.container.setHeight('600px');
     this.container.setBackgroundColor('#f8f9fa');
     this.container.setBorder('1px solid #dee2e6');
     this.container.setPadding('10px');
@@ -27,11 +28,58 @@ var CADToolbar = function(editor) {
     // Add border radius via direct style manipulation
     this.container.dom.style.borderRadius = '5px';
     this.container.dom.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    this.container.dom.style.overflowY = 'auto';
+    this.container.dom.style.maxHeight = '80vh';
     
     // Title
-    var title = new UI.Text('CAD Creation Tools').setFontSize('16px').setFontWeight('bold');
+    var title = new UI.Text('Grid Options').setFontSize('16px').setFontWeight('bold').setColor('#333');
     this.container.add(title);
     this.container.add(new UI.Break());
+    
+    // Mode Selection Toolbar (Top grey toolbar)
+    var modeToolbar = new UI.Panel();
+    modeToolbar.setClass('mode-toolbar');
+    modeToolbar.setBackgroundColor('#f5f5f5');
+    modeToolbar.setBorder('1px solid #ddd');
+    modeToolbar.setPadding('8px');
+    modeToolbar.setMarginBottom('10px');
+    modeToolbar.dom.style.borderRadius = '4px';
+    
+    var modeTitle = new UI.Text('Mode Selection').setFontSize('12px').setFontWeight('bold').setColor('#666');
+    modeToolbar.add(modeTitle);
+    modeToolbar.add(new UI.Break());
+    
+    var modeButtonRow = new UI.Row();
+    modeButtonRow.setMarginTop('5px');
+    
+    // Add Members/Nodes mode button
+    this.addModeButton = new UI.Button('+ Add Members/Nodes').setWidth('140px').setMarginRight('5px');
+    this.addModeButton.onClick(function() {
+        scope.setMode('add');
+    });
+    
+    // Select/Move mode button
+    this.selectModeButton = new UI.Button('✋ Select/Move').setWidth('100px').setMarginRight('5px');
+    this.selectModeButton.onClick(function() {
+        scope.setMode('select');
+    });
+    
+    // Edit mode button
+    this.editModeButton = new UI.Button('✏️ Edit').setWidth('80px');
+    this.editModeButton.onClick(function() {
+        scope.setMode('edit');
+    });
+    
+    modeButtonRow.add(this.addModeButton);
+    modeButtonRow.add(this.selectModeButton);
+    modeButtonRow.add(this.editModeButton);
+    modeToolbar.add(modeButtonRow);
+    
+    this.container.add(modeToolbar);
+    
+    // Current mode tracking
+    this.currentMode = 'select'; // Default mode
+    this.setMode('select'); // Initialize with select mode
     
     // Node creation section
     var nodeSection = new UI.Panel();
@@ -65,11 +113,26 @@ var CADToolbar = function(editor) {
     var gridSnapLabel = new UI.Text('Grid Snap:').setWidth('70px');
     this.gridSnapCheckbox = new UI.Checkbox(true);
     this.gridSnapCheckbox.onChange(function() {
-        console.log('Grid snap:', scope.gridSnapCheckbox.getValue());
+        var enabled = scope.gridSnapCheckbox.getValue();
+        console.log('Grid snap:', enabled);
+        
+        // Update status based on grid nodes availability
+        if (enabled && scope.editor.gridNodes && scope.editor.gridNodes.config.enabled) {
+            scope.updateStatus('Grid snapping enabled - nodes will snap to grid');
+        } else if (enabled) {
+            scope.updateStatus('Grid snapping enabled - using default 0.5 unit grid');
+        } else {
+            scope.updateStatus('Grid snapping disabled');
+        }
     });
     
     nodeOptionsRow.add(gridSnapLabel);
     nodeOptionsRow.add(this.gridSnapCheckbox);
+    
+    // Add grid status indicator
+    this.gridStatusText = new UI.Text('').setFontSize('11px').setColor('#666');
+    nodeOptionsRow.add(this.gridStatusText);
+    
     nodeSection.add(nodeOptionsRow);
     
     this.container.add(nodeSection);
@@ -128,6 +191,83 @@ var CADToolbar = function(editor) {
     
     this.container.add(statusSection);
     
+    // Import/Export section
+    var importSection = new UI.Panel();
+    importSection.setMarginTop('15px');
+    
+    var importTitle = new UI.Text('Import/Export').setFontSize('14px').setFontWeight('bold');
+    importSection.add(importTitle);
+    importSection.add(new UI.Break());
+    
+    var importRow = new UI.Row();
+    
+    // Create hidden form and file input (like in Menubar.File.js)
+    var form = document.createElement('form');
+    form.style.display = 'none';
+    document.body.appendChild(form);
+    
+    var fileInput = document.createElement('input');
+    fileInput.multiple = false;
+    fileInput.type = 'file';
+    fileInput.accept = '.dxf';
+    fileInput.addEventListener('change', function(event) {
+        if (confirm('Any unsaved data will be lost. Are you sure?')) {
+            scope.editor.clear();
+            
+            // Create FormData to properly send the file
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            $.ajax({
+                type: 'POST',
+                timeout: 20000,
+                url: '/import_dxf',
+                data: formData,
+                processData: false,
+                contentType: false,  // Let jQuery set the content type
+                dataType: 'json',   // Expect JSON response
+                success: function(data) {
+                    if (data.success) {
+                        // Process the imported data (same format as /load endpoint)
+                        scope.processImportedData(data.data);
+                        scope.updateStatus(data.message);
+                    } else {
+                        scope.updateStatus('Error: ' + data.error);
+                        alert('Error importing DXF: ' + data.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', xhr, status, error);
+                    var errorMsg = 'Error importing DXF file';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    scope.updateStatus(errorMsg);
+                    alert(errorMsg);
+                }
+            });
+        }
+        form.reset();
+    });
+    form.appendChild(fileInput);
+    
+    var dxfImportButton = new UI.Button('📁 Import DXF').setWidth('120px').setMarginRight('5px');
+    dxfImportButton.onClick(function() {
+        console.log('DXF Import button clicked - triggering file input');
+        fileInput.click();
+    });
+    
+    var exportButton = new UI.Button('💾 Export').setWidth('100px');
+    exportButton.onClick(function() {
+        scope.exportModel();
+    });
+    
+    importRow.add(dxfImportButton);
+    importRow.add(exportButton);
+    importSection.add(importRow);
+    
+    this.container.add(importSection);
+    
     // Quick actions
     var actionsSection = new UI.Panel();
     actionsSection.setMarginTop('15px');
@@ -162,19 +302,76 @@ var CADToolbar = function(editor) {
     
     // Initialize status updates
     this.setupStatusUpdates();
+    
+    // Start collapsed by default
+    this.container.setDisplay('none');
 };
 
 CADToolbar.prototype = {
+    
+    setMode: function(mode) {
+        // Reset all mode buttons with safety checks
+        if (this.addModeButton && this.addModeButton.setBackgroundColor) {
+            this.addModeButton.setBackgroundColor('');
+            this.addModeButton.setColor('');
+        }
+        if (this.selectModeButton && this.selectModeButton.setBackgroundColor) {
+            this.selectModeButton.setBackgroundColor('');
+            this.selectModeButton.setColor('');
+        }
+        if (this.editModeButton && this.editModeButton.setBackgroundColor) {
+            this.editModeButton.setBackgroundColor('');
+            this.editModeButton.setColor('');
+        }
+        
+        // Set active mode button
+        this.currentMode = mode;
+        var activeColor = '#007bff';
+        var activeTextColor = '#ffffff';
+        
+        switch(mode) {
+            case 'add':
+                if (this.addModeButton && this.addModeButton.setBackgroundColor) {
+                    this.addModeButton.setBackgroundColor(activeColor);
+                    this.addModeButton.setColor(activeTextColor);
+                }
+                this.updateStatus('Add mode active - Create nodes and elements');
+                break;
+            case 'select':
+                if (this.selectModeButton && this.selectModeButton.setBackgroundColor) {
+                    this.selectModeButton.setBackgroundColor(activeColor);
+                    this.selectModeButton.setColor(activeTextColor);
+                }
+                this.updateStatus('Select mode active - Click to select and move objects');
+                break;
+            case 'edit':
+                if (this.editModeButton && this.editModeButton.setBackgroundColor) {
+                    this.editModeButton.setBackgroundColor(activeColor);
+                    this.editModeButton.setColor(activeTextColor);
+                }
+                this.updateStatus('Edit mode active - Modify object properties');
+                break;
+        }
+        
+        // Deactivate current tools when switching modes
+        this.deactivateAllTools();
+        
+        console.log('CAD Toolbar mode set to:', mode);
+    },
     
     toggleNodeCreation: function() {
         if (this.currentTool === 'node') {
             this.deactivateAllTools();
         } else {
             this.deactivateAllTools();
-            this.nodeCreator.activate();
+            if (this.nodeCreator && this.nodeCreator.activate) {
+                this.nodeCreator.activate();
+            }
             this.currentTool = 'node';
-            this.nodeButton.setBackgroundColor('#007bff');
-            this.nodeButton.setColor('#ffffff');
+            if (this.nodeButton && this.nodeButton.setBackgroundColor) {
+                this.nodeButton.setBackgroundColor('#007bff');
+                this.nodeButton.setColor('#ffffff');
+            }
             this.updateStatus('Node creation mode active - Click to place nodes');
         }
     },
@@ -184,24 +381,36 @@ CADToolbar.prototype = {
             this.deactivateAllTools();
         } else {
             this.deactivateAllTools();
-            this.elementCreator.activate();
+            if (this.elementCreator && this.elementCreator.activate) {
+                this.elementCreator.activate();
+            }
             this.currentTool = 'element';
-            this.elementButton.setBackgroundColor('#007bff');
-            this.elementButton.setColor('#ffffff');
+            if (this.elementButton && this.elementButton.setBackgroundColor) {
+                this.elementButton.setBackgroundColor('#007bff');
+                this.elementButton.setColor('#ffffff');
+            }
             this.updateStatus('Element creation mode active - Click nodes to connect');
         }
     },
     
     deactivateAllTools: function() {
-        this.nodeCreator.deactivate();
-        this.elementCreator.deactivate();
+        if (this.nodeCreator && this.nodeCreator.deactivate) {
+            this.nodeCreator.deactivate();
+        }
+        if (this.elementCreator && this.elementCreator.deactivate) {
+            this.elementCreator.deactivate();
+        }
         this.currentTool = null;
         
-        // Reset button styles
-        this.nodeButton.setBackgroundColor('');
-        this.nodeButton.setColor('');
-        this.elementButton.setBackgroundColor('');
-        this.elementButton.setColor('');
+        // Reset button styles with safety checks
+        if (this.nodeButton && this.nodeButton.setBackgroundColor) {
+            this.nodeButton.setBackgroundColor('');
+            this.nodeButton.setColor('');
+        }
+        if (this.elementButton && this.elementButton.setBackgroundColor) {
+            this.elementButton.setBackgroundColor('');
+            this.elementButton.setColor('');
+        }
         
         this.updateStatus('Ready');
     },
@@ -330,8 +539,21 @@ CADToolbar.prototype = {
     createNodeAtCoordinates: function(position) {
         // Use the node creator to create a node at specific coordinates
         this.nodeCreator.updateNodeCount();
-        this.nodeCreator.createNodeAtPosition(position);
-        this.updateStatus(`Node created at (${position.x}, ${position.y}, ${position.z})`);
+        
+        // Apply grid snapping if enabled
+        var snappedPosition = this.nodeCreator.snapToGrid(position);
+        this.nodeCreator.createNodeAtPosition(snappedPosition);
+        
+        // Show snap feedback
+        var snapInfo = '';
+        if (this.editor.gridNodes && this.editor.gridNodes.config.enabled) {
+            var distance = position.distanceTo(snappedPosition);
+            if (distance > 0.001) {
+                snapInfo = ` (snapped ${distance.toFixed(3)} units to grid)`;
+            }
+        }
+        
+        this.updateStatus(`Node created at (${snappedPosition.x.toFixed(2)}, ${snappedPosition.y.toFixed(2)}, ${snappedPosition.z.toFixed(2)})${snapInfo}`);
     },
     
     createElementManually: function(nodeI, nodeJ, sectionId) {
@@ -367,7 +589,9 @@ CADToolbar.prototype = {
     },
     
     updateStatus: function(message) {
-        this.statusText.setValue(message);
+        if (this.statusText && this.statusText.setValue) {
+            this.statusText.setValue(message);
+        }
         console.log('CAD Toolbar Status:', message);
     },
     
@@ -394,6 +618,80 @@ CADToolbar.prototype = {
         this.editor.signals.editorCleared.add(function() {
             scope.updateStatus('Editor cleared');
         });
+        
+        // Update grid status periodically
+        setInterval(function() {
+            scope.updateGridStatus();
+        }, 1000);
+    },
+    
+    updateGridStatus: function() {
+        if (!this.gridStatusText) return;
+        
+        if (this.editor.gridNodes && this.editor.gridNodes.config.enabled) {
+            var gridSize = this.editor.gridNodes.config.gridSize;
+            var totalSize = this.editor.gridNodes.config.totalSize;
+            this.gridStatusText.setValue(`Grid: ${gridSize}m spacing, ${totalSize.x}×${totalSize.y}×${totalSize.z}m`);
+            this.gridStatusText.setColor('#4CAF50');
+        } else {
+            this.gridStatusText.setValue('No grid');
+            this.gridStatusText.setColor('#999');
+        }
+    },
+    
+    
+    processImportedData: function(dataString) {
+        // Parse the data string (same format as /load endpoint)
+        var parts = dataString.split('|');
+        if (parts.length >= 7) {
+            var nodesData = JSON.parse(parts[0]);
+            var elementsData = JSON.parse(parts[1]);
+            var pointLoadsData = JSON.parse(parts[2]);
+            var distLoadsData = JSON.parse(parts[3]);
+            var materialsData = JSON.parse(parts[4]);
+            var sectionsData = JSON.parse(parts[5]);
+            var mqnData = JSON.parse(parts[6]);
+            
+            console.log('Processing imported DXF data:');
+            console.log('Nodes:', nodesData.data.length);
+            console.log('Elements:', elementsData.data.length);
+            
+            // Clear existing model
+            this.editor.clear();
+            
+            // Use the same function as the main load functionality
+            if (typeof drawFromAidea === 'function') {
+                drawFromAidea(this.editor, nodesData, elementsData);
+                
+                // Store data globally for other functions (same as main load)
+                window.currentNodes = nodesData;
+                window.currentElements = elementsData;
+                window.currentPointLoads = pointLoadsData;
+                window.currentDistLoads = distLoadsData;
+                window.currentMaterials = materialsData;
+                window.currentSections = sectionsData;
+                
+                // Enable analysis button if it exists
+                var analysisBtn = document.getElementById('runAnalysisBtn');
+                if (analysisBtn) {
+                    analysisBtn.disabled = false;
+                }
+                
+                console.log('DXF data loaded successfully into editor');
+            } else {
+                console.error('drawFromAidea function not available');
+                this.updateStatus('Error: Could not render imported data');
+            }
+        } else {
+            console.error('Invalid data format received from server');
+            this.updateStatus('Error: Invalid data format from server');
+        }
+    },
+    
+    exportModel: function() {
+        // Placeholder for export functionality
+        this.updateStatus('Export functionality not yet implemented');
+        console.log('Export model requested');
     },
     
     show: function() {

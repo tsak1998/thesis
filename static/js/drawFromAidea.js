@@ -82,24 +82,10 @@ function drawFromAidea(editor, nodes, elements) {
             parseFloat(nodeJ.coord_z)
         ));
         
-        var line = new MeshLine();
-        line.setGeometry(geometry);
-
-        var line_width = 2.5;
-        var viewport = document.getElementById('viewport');
-        var resolution = new THREE.Vector2(viewport.clientWidth, viewport.clientHeight);
-        
-        var matLine = new MeshLineMaterial({
-            color: (element.elem_type === 'beam' ? bColor : cColor),
-            lineWidth: line_width,
-            sizeAttenuation: false,
-            useMap: false,
-            resolution: resolution,
-            near: 0.1,
-            far: 200.0
+        var mesh = LineUtils.createLineMesh(geometry, {
+            elementType: element.elem_type,
+            lineWidth: 12.0
         });
-
-        var mesh = new THREE.Mesh(line.geometry, matLine);
         mesh.name = 'Element ' + element.en;
         
         // Calculate element center for label positioning

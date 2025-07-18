@@ -5,8 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "ezdxf>=1.4.2",
     "flask>=3.1.1",
     "numpy>=2.3.1",
+    "pandas>=2.3.1",
     "pydantic>=2.11.7",
     "wtforms>=3.2.1",
 ]

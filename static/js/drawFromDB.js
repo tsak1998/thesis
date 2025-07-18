@@ -47,26 +47,10 @@ function drawFromDB(editor, nodes, elements) {
         var geometry = new THREE.Geometry();     
         geometry.vertices.push(new THREE.Vector3( parseFloat(nodes.data[parseInt(elements.data[i].nodei)-1].coord_x), parseFloat(nodes.data[parseInt(elements.data[i].nodei)-1].coord_y),  parseFloat(nodes.data[parseInt(elements.data[i].nodei)-1].coord_z)));
         geometry.vertices.push(new THREE.Vector3( parseFloat(nodes.data[parseInt(elements.data[i].nodej)-1].coord_x), parseFloat(nodes.data[parseInt(elements.data[i].nodej)-1].coord_y),  parseFloat(nodes.data[parseInt(elements.data[i].nodej)-1].coord_z)));
-        var line = new MeshLine();
-        line.setGeometry (geometry);
-
-        var line_width = 2.5;
-        var viewport = document.getElementById('viewport');
-        var resolution = new THREE.Vector2(viewport.clientWidth, viewport.clientHeight);
-        var matLine = new MeshLineMaterial({
-            color: (elements.data[i].elem_type === 'beam' ?  bColor : cColor),
-            lineWidth: line_width,
-            sizeAttenuation: false,
-            useMap: false,
-            resolution: resolution,
-            near: 0.1,
-            far: 200.0
-            //vertexColors: THREE.VertexColors,
-            //linecap: 'round', 
-            //linejoin:  'round'
-         });
-    
-        var mesh = new THREE.Mesh( line.geometry, matLine );
+        var mesh = LineUtils.createLineMesh(geometry, {
+            elementType: elements.data[i].elem_type,
+            lineWidth: 8.0
+        });
         mesh.name = 'Element ' + elements.data[i].en;
         //mesh.something = 'abc';
 

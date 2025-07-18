@@ -4,17 +4,15 @@
 
 var Editor = function () {
 	
-	var frustumSize = 10000;
+	var frustumSize = 20; // Reduced for better CAD view
 	var SCREEN_WIDTH = window.innerWidth;
-	var SCREEN_HEIGHT = window.innerHeight; //document.getElementById("navbarResponsive").height;
+	var SCREEN_HEIGHT = window.innerHeight;
 	var aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
 
 	//console.log('w='+SCREEN_WIDTH+'  h='+SCREEN_HEIGHT);
 	
-	this.DEFAULT_CAMERA = new THREE.PerspectiveCamera( 50, 1, 0.01, 1000 );
-	//this.DEFAULT_CAMERA = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 0.1, 1000 );
-	//new THREE.OrthographicCamera( window.innerWidth / - 50, window.innerWidth / 50, window.innerHeight / 50, window.innerHeight / -50, - 500, 1000);
-	//new THREE.OrthographicCamera( 0.5 * frustumSize * aspect / - 2, 0.5 * frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 150, 1000 );
+	// Use perspective camera for better 3D visualization
+	this.DEFAULT_CAMERA = new THREE.PerspectiveCamera( 50, aspect, 0.1, 10000 );
 	this.DEFAULT_CAMERA.name = 'Camera';
 	this.DEFAULT_CAMERA.position.set( 0, 5, 10 );
 	this.DEFAULT_CAMERA.lookAt( new THREE.Vector3() );

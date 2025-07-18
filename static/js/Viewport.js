@@ -409,7 +409,7 @@ var Viewport = function ( editor ) {
 
 		}
 
-		if ( object instanceof THREE.PerspectiveCamera ) {
+		if ( object instanceof THREE.PerspectiveCamera || object instanceof THREE.OrthographicCamera ) {
 
 			object.updateProjectionMatrix();
 
@@ -514,12 +514,13 @@ var Viewport = function ( editor ) {
 
 	signals.windowResize.add( function () {
 
-		// TODO: Move this out?
+		// Handle window resize for perspective camera
+		var aspect = container.dom.offsetWidth / container.dom.offsetHeight;
 
-		editor.DEFAULT_CAMERA.aspect = container.dom.offsetWidth / container.dom.offsetHeight;
+		editor.DEFAULT_CAMERA.aspect = aspect;
 		editor.DEFAULT_CAMERA.updateProjectionMatrix();
 
-		camera.aspect = container.dom.offsetWidth / container.dom.offsetHeight;
+		camera.aspect = aspect;
 		camera.updateProjectionMatrix();
 
 		renderer.setSize( container.dom.offsetWidth, container.dom.offsetHeight );

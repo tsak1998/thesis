@@ -51,45 +51,46 @@ function drawElements( editor, elements ){
 		console.log(dirVector)
 
 		
-		var positions = [];
-		positions.push(0, 0, 0, length, 0, 0)
-		var geometry = new THREE.BufferGeometry();
-		geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) )
+		// Create geometry for MeshLine
+		var lineGeometry = new THREE.Geometry();
+		lineGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+		lineGeometry.vertices.push(new THREE.Vector3(length, 0, 0));
 		
 		var xm = (xi + xj) / 2;
-        var ym = (yi + yj) / 2;
-        var zm = (zi + zj) / 2;
+		      var ym = (yi + yj) / 2;
+		      var zm = (zi + zj) / 2;
 
 		var arrowHelper;
-        var localAxes = new THREE.Object3D();
-        var origin = new THREE.Vector3( xm, ym, zm );        
-        var alength = 0.5;
+		      var localAxes = new THREE.Object3D();
+		      var origin = new THREE.Vector3( xm, ym, zm );
+		      var alength = 0.5;
 		var hex;
 
 		axesMatrix = new THREE.Matrix4()
-		axesMatrix.makeBasis(dirVector, yLocal, zLocal)	
-		axesMatrix.setPosition(new THREE.Vector3(xm, ym, zm)) 
+		axesMatrix.makeBasis(dirVector, yLocal, zLocal)
+		axesMatrix.setPosition(new THREE.Vector3(xm, ym, zm))
 		
-        hex = 0xff0000;
-        arrowHelper = new THREE.ArrowHelper( dirVector1, origin, alength, hex );
-        localAxes.add ( arrowHelper );
-         
-        hex = 0x0000ff;
-        arrowHelper = new THREE.ArrowHelper( dirVector2, origin, alength, hex );
-        localAxes.add ( arrowHelper );
+		      hex = 0xff0000;
+		      arrowHelper = new THREE.ArrowHelper( dirVector1, origin, alength, hex );
+		      localAxes.add ( arrowHelper );
+		       
+		      hex = 0x0000ff;
+		      arrowHelper = new THREE.ArrowHelper( dirVector2, origin, alength, hex );
+		      localAxes.add ( arrowHelper );
 
-        //var yDir = new THREE.Vector3().crossVectors( xDir, zDir );
-       
-        hex = 0x00ff00;
-        arrowHelper = new THREE.ArrowHelper( dirVector3, origin, alength, hex );
+		      //var yDir = new THREE.Vector3().crossVectors( xDir, zDir );
+		     
+		      hex = 0x00ff00;
+		      arrowHelper = new THREE.ArrowHelper( dirVector3, origin, alength, hex );
 		localAxes.add ( arrowHelper );
 		//axes matrix
 		
 		
 
-		line = new THREE.Line( geometry, new THREE.LineBasicMaterial({'color' : 0x404040}) );
-		
-		line.material.linewidth = 1
+		line = LineUtils.createLineMesh(lineGeometry, {
+			color: 0x404040,
+			lineWidth: 8.0
+		});
 		line.name = 'Element ' + String(element.en);
 		localAxes.name = line.name+'axis';
 		line.userData = {'en' : element.en,

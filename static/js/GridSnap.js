@@ -108,3 +108,60 @@ GridSnap.prototype.mouseMove = function(event) {
 		this.hoverMesh.visible = false;
 	}
 }
+
+// Enhanced GridSnap with Grid Nodes integration
+GridSnap.prototype.snapToGridNodes = function(event, gridNodes) {
+	if (!gridNodes || !gridNodes.config.enabled || !gridNodes.config.snapEnabled) {
+		return this.getNearestVertexFromEvent(event);
+	}
+	
+	var mouse = new THREE.Vector2();
+	var rect = this.renderer.domElement.getBoundingClientRect();
+	mouse.fromArray([(event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height]);
+	mouse.set((mouse.x * 2) - 1, -(mouse.y * 2) + 1);
+
+	this.raycaster.setFromCamera(mouse, this.camera);
+	var intersects = this.raycaster.intersectOctreeObject(this.intersectMesh, true);
+
+	if (intersects.length > 0) {
+		var intersectionPoint = intersects[0].point;
+		
+		// Try grid snapping first
+		var snapResult = gridNodes.snapToGridWithFeedback(intersectionPoint, gridNodes.config.snapTolerance, true);
+		
+		if (snapResult.snapped) {
+			return snapResult.snapPoint;
+		}
+		
+		// Fall back to vertex snapping if grid snapping fails
+		var closestVertex = this.octree.findClosestVertex(intersectionPoint, this.radius);
+		return closestVertex;
+	}
+	
+	return null;
+};
+
+// Enhanced mouse move with grid snapping
+GridSnap.prototype.mouseMoveWithGridSnap = function(event, gridNodes) {
+	this.addMarkerOnMouseUp = false;
+	if (!this.enabled || !this.hoverMesh) return;
+
+	let snapPoint = this.snapToGridNodes(event, gridNodes);
+	if (snapPoint) {
+		this.hoverMesh.position.copy(snapPoint);
+		this.hoverMesh.visible = true;
+	} else {
+		this.hoverMesh.visible = false;
+	}
+};
+
+// Enhanced mouse up with grid snapping
+GridSnap.prototype.mouseUpWithGridSnap = function(event, gridNodes) {
+	if (!this.addMarkerOnMouseUp) return;
+
+	let snapPoint = this.snapToGridNodes(event, gridNodes);
+	if (snapPoint) {
+		this.addOrRemoveMarker(snapPoint);
+	}
+	this.addMarkerOnMouseUp = false;
+};

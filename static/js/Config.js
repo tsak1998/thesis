@@ -16,7 +16,7 @@ var Config = function () {
 		'project/editable': false,
 
 		'project/renderer': 'WebGLRenderer',
-		'project/renderer/antialias': true,
+		'project/renderer/antialias': false,
 		'project/renderer/gammaInput': false,
 		'project/renderer/gammaOutput': false,
 		'project/renderer/shadows': false,

@@ -262,7 +262,7 @@ Sidebar.Elements.Modern = function ( editor ) {
 		geometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 
 		var line = new THREE.Line(geometry, member_material);
-		line.material.linewidth = 1;
+		line.material.linewidth = 12;
 		line.name = 'Element ' + String(elemCount);
 		line.userData = {
 			'en': elemCount,

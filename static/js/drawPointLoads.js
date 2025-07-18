@@ -69,7 +69,7 @@ function drawPointLoads( editor, pointLoads ){
                 
                 line = new THREE.Line( geometry, member_material );
                 line.name = 'Point Load '+String(load_id)
-                line.material.linewidth = 3
+                line.material.linewidth = 8
                 line.applyMatrix(m)
                 line.position.x += positionOffset.x
                 line.position.y += positionOffset.y
