@@ -171,11 +171,17 @@
 		<script src="{{ url_for('static', filename='js/resusltsDisplacements.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/deformedStructure.js') }}"></script>
 		
+		<!-- Modern UI Components -->
+		<script src="{{ url_for('static', filename='js/GridNodes.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/GridNodesUI.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/Sidebar.Elements.Modern.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/ModernToolbar.js') }}"></script>
 
 		<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.css">
 		<link rel="stylesheet" type="text/css" href="https://handsontable.com/static/css/main.css">
 		<link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet" />
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/light.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/monokai.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/dialog.css') }}">
@@ -421,6 +427,103 @@
 
 				}
 
+			}
+		</script>
+		
+		<script>
+			// Initialize modern components after editor is ready
+			document.addEventListener('DOMContentLoaded', function() {
+				// Wait for editor to be fully initialized
+				setTimeout(function() {
+					if (typeof editor !== 'undefined') {
+						console.log('Initializing modern CAD interface components...');
+						
+						// Initialize Grid Nodes UI
+						if (typeof GridNodesUI !== 'undefined') {
+							window.gridNodesUI = new GridNodesUI(editor);
+							console.log('✅ Grid Nodes UI initialized');
+						}
+						
+						// Initialize Modern Toolbar
+						if (typeof ModernToolbar !== 'undefined') {
+							window.modernToolbar = new ModernToolbar(editor);
+							console.log('✅ Modern Toolbar initialized');
+						}
+						
+						// Add welcome notification
+						setTimeout(function() {
+							showWelcomeNotification();
+						}, 1500);
+					}
+				}, 1000);
+			});
+			
+			// Welcome notification function
+			function showWelcomeNotification() {
+				var notification = document.createElement('div');
+				notification.style.cssText = `
+					position: fixed;
+					top: 20px;
+					right: 20px;
+					background: linear-gradient(135deg, #007bff, #0056b3);
+					color: white;
+					padding: 16px 20px;
+					border-radius: 8px;
+					box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+					z-index: 10000;
+					font-weight: 500;
+					max-width: 300px;
+					animation: slideIn 0.3s ease-out;
+				`;
+				
+				notification.innerHTML = `
+					<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+						<span style="font-size: 20px;">🎉</span>
+						<strong>Welcome to Enhanced CAD!</strong>
+					</div>
+					<div style="font-size: 14px; opacity: 0.9; line-height: 1.4;">
+						New features available:
+						<br>• 🔲 Grid Nodes with transparency
+						<br>• 🛠️ Modern toolbar (Ctrl+T)
+						<br>• ✨ Beautiful UI components
+					</div>
+				`;
+				
+				// Add animation keyframes
+				var style = document.createElement('style');
+				style.textContent = `
+					@keyframes slideIn {
+						from { transform: translateX(100%); opacity: 0; }
+						to { transform: translateX(0); opacity: 1; }
+					}
+				`;
+				document.head.appendChild(style);
+				
+				document.body.appendChild(notification);
+				
+				// Auto-hide after 8 seconds
+				setTimeout(function() {
+					notification.style.transition = 'all 0.3s ease-out';
+					notification.style.transform = 'translateX(100%)';
+					notification.style.opacity = '0';
+					setTimeout(function() {
+						if (notification.parentNode) {
+							document.body.removeChild(notification);
+						}
+					}, 300);
+				}, 8000);
+				
+				// Click to dismiss
+				notification.onclick = function() {
+					notification.style.transition = 'all 0.3s ease-out';
+					notification.style.transform = 'translateX(100%)';
+					notification.style.opacity = '0';
+					setTimeout(function() {
+						if (notification.parentNode) {
+							document.body.removeChild(notification);
+						}
+					}, 300);
+				};
 			}
 		</script>
 		

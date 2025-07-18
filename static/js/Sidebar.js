@@ -72,7 +72,7 @@ var Sidebar = function ( editor ) {
 	container.add( sections );
 	
 	var elements = new UI.Span().add(
-		new Sidebar.Elements( editor )
+		new Sidebar.Elements.Modern( editor )
 	);
 	container.add( elements );
 	
