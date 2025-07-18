@@ -52,23 +52,23 @@ var CADToolbar = function(editor) {
     var modeButtonRow = new UI.Row();
     modeButtonRow.setMarginTop('5px');
     
-    // Add Members/Nodes mode button
-    this.addModeButton = new UI.Button('+ Add Members/Nodes').setWidth('140px').setMarginRight('5px');
-    this.addModeButton.onClick(function() {
-        scope.setMode('add');
-    });
+    // // Add Members/Nodes mode button
+    // this.addModeButton = new UI.Button('+ Add Members/Nodes').setWidth('140px').setMarginRight('5px');
+    // this.addModeButton.onClick(function() {
+    //     scope.setMode('add');
+    // });
     
-    // Select/Move mode button
-    this.selectModeButton = new UI.Button('✋ Select/Move').setWidth('100px').setMarginRight('5px');
-    this.selectModeButton.onClick(function() {
-        scope.setMode('select');
-    });
+    // // Select/Move mode button
+    // this.selectModeButton = new UI.Button('✋ Select/Move').setWidth('100px').setMarginRight('5px');
+    // this.selectModeButton.onClick(function() {
+    //     scope.setMode('select');
+    // });
     
-    // Edit mode button
-    this.editModeButton = new UI.Button('✏️ Edit').setWidth('80px');
-    this.editModeButton.onClick(function() {
-        scope.setMode('edit');
-    });
+    // // Edit mode button
+    // this.editModeButton = new UI.Button('✏️ Edit').setWidth('80px');
+    // this.editModeButton.onClick(function() {
+    //     scope.setMode('edit');
+    // });
     
     modeButtonRow.add(this.addModeButton);
     modeButtonRow.add(this.selectModeButton);
