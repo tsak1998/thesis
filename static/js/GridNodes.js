@@ -221,7 +221,7 @@ GridNodes.prototype = {
     },
     
     setSnapTolerance: function(tolerance) {
-        this.config.snapTolerance = Math.max(0.1, Math.min(10.0, parseFloat(tolerance) || 0.25));
+        this.config.snapTolerance = Math.max(0.1, Math.min(10.0, parseFloat(tolerance) || 0.1));
         console.log('Grid snap tolerance set to:', this.config.snapTolerance);
     },
     

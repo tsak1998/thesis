@@ -116,7 +116,7 @@ GridNodesUI.prototype = {
         this.toleranceSlider.min = '0.1';
         this.toleranceSlider.max = '5.0';
         this.toleranceSlider.step = '0.1';
-        this.toleranceSlider.value = '0.25';
+        this.toleranceSlider.value = '0.1';
         this.toleranceSlider.style.flex = '1';
         this.toleranceSlider.oninput = function() {
             scope.updateSnapTolerance();

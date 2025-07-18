@@ -15,6 +15,7 @@ var InteractiveElementCreator = function(editor) {
     this.elementCount = 1;
     this.currentSectionId = 1;
     this.validator = new ValidationHelper();
+    this.continuousMode = false; // Flag for continuous element creation
     
     // Materials for elements - using utility function
     this.elementMaterial = LineUtils.createStandardLineMaterial({
@@ -120,9 +121,16 @@ var InteractiveElementCreator = function(editor) {
     
     this.onKeyDown = function(event) {
         if (event.key === 'Escape') {
-            scope.deactivate();
+            if (scope.continuousMode) {
+                scope.exitContinuousMode();
+            } else {
+                scope.deactivate();
+            }
         } else if (event.key === 'Enter' && scope.selectedNodes.length === 2) {
             scope.createElement();
+        } else if (event.key === 'c' || event.key === 'C') {
+            // Toggle continuous mode with 'C' key
+            scope.toggleContinuousMode();
         }
     };
 };
@@ -132,6 +140,7 @@ InteractiveElementCreator.prototype = {
     activate: function() {
         this.isActive = true;
         this.selectedNodes = [];
+        this.continuousMode = false;
         this.updateElementCount();
         
         // Add event listeners
@@ -143,13 +152,14 @@ InteractiveElementCreator.prototype = {
         document.body.style.cursor = 'crosshair';
         
         // Update status
-        this.updateStatus('Click on two nodes to create an element. Press ESC to exit.');
+        this.updateStatus('Click on two nodes to create an element. Press C for continuous mode, ESC to exit.');
         
         console.log('Interactive element creation activated');
     },
     
     deactivate: function() {
         this.isActive = false;
+        this.continuousMode = false;
         
         // Remove event listeners
         document.removeEventListener('mousemove', this.onMouseMove, false);
@@ -187,10 +197,18 @@ InteractiveElementCreator.prototype = {
             node.material.emissive.setHex(0x00ff00);
         }
         
-        this.updateStatus(`Node ${node.userData.nn} selected. ${this.selectedNodes.length}/2 nodes selected.`);
+        var statusMsg = `Node ${node.userData.nn} selected. ${this.selectedNodes.length}/2 nodes selected.`;
+        if (this.continuousMode) {
+            statusMsg += ' [CONTINUOUS MODE]';
+        }
+        this.updateStatus(statusMsg);
         
         if (this.selectedNodes.length === 2) {
-            this.updateStatus(`Two nodes selected. Click to create element or press Enter.`);
+            var createMsg = `Two nodes selected. Creating element...`;
+            if (this.continuousMode) {
+                createMsg += ' [CONTINUOUS MODE]';
+            }
+            this.updateStatus(createMsg);
             this.createElement();
         }
         
@@ -351,15 +369,31 @@ InteractiveElementCreator.prototype = {
         this.editor.execute(new AddObjectCommand(element));
         
         // Update status
-        this.updateStatus(`Element ${this.elementCount} created between nodes ${nodeI.userData.nn} and ${nodeJ.userData.nn}`);
+        var statusMsg = `Element ${this.elementCount} created between nodes ${nodeI.userData.nn} and ${nodeJ.userData.nn}`;
+        if (this.continuousMode) {
+            statusMsg += ' [CONTINUOUS MODE - Node J becomes next Node I]';
+        }
+        this.updateStatus(statusMsg);
         
-        // Clear selections and prepare for next element
-        this.clearSelections();
-        this.removePreviewLine();
+        // Handle continuous mode or normal mode
+        if (this.continuousMode) {
+            // In continuous mode, keep nodeJ as the first selected node for the next element
+            this.clearSelections();
+            this.removePreviewLine();
+            this.selectedNodes = [nodeJ]; // nodeJ becomes nodeI for next element
+            if (nodeJ.material && nodeJ.material.emissive) {
+                nodeJ.material.emissive.setHex(0x00ff00); // Keep it highlighted as selected
+            }
+            this.updateStatus(`Continuous mode: Node ${nodeJ.userData.nn} ready for next element. Click another node or ESC to exit.`);
+        } else {
+            // Normal mode - clear everything
+            this.clearSelections();
+            this.removePreviewLine();
+            // Auto-select the new element
+            this.editor.select(element);
+        }
+        
         this.elementCount++;
-        
-        // Auto-select the new element
-        this.editor.select(element);
         
         console.log('Element created:', element.userData);
     },
@@ -396,6 +430,31 @@ InteractiveElementCreator.prototype = {
         } else {
             this.activate();
         }
+    },
+    
+    toggleContinuousMode: function() {
+        this.continuousMode = !this.continuousMode;
+        
+        if (this.continuousMode) {
+            this.updateStatus('Continuous mode ENABLED. Elements will chain together. Press C to disable or ESC to exit.');
+        } else {
+            this.updateStatus('Continuous mode DISABLED. Press C to enable.');
+            // If we had a selected node from continuous mode, clear it
+            if (this.selectedNodes.length === 1) {
+                this.clearSelections();
+                this.removePreviewLine();
+            }
+        }
+        
+        console.log('Continuous mode:', this.continuousMode ? 'enabled' : 'disabled');
+    },
+    
+    exitContinuousMode: function() {
+        this.continuousMode = false;
+        this.clearSelections();
+        this.removePreviewLine();
+        this.updateStatus('Continuous mode exited. Click on two nodes to create an element. Press C for continuous mode, ESC to exit.');
+        console.log('Exited continuous mode');
     }
 };
 

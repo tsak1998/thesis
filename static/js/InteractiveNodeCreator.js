@@ -262,25 +262,28 @@ InteractiveNodeCreator.prototype = {
     },
     
     snapToGrid: function(position) {
-        // Use Grid Nodes system if available and enabled
+        // Use raycast-based snapping if Grid Nodes system is available and enabled
         if (this.editor.gridNodes && this.editor.gridNodes.config.enabled) {
-            var snappedPosition = this.editor.gridNodes.snapToGrid(position);
+            var snappedPosition = this.raycastSnapToGridNodes(position);
+            if (snappedPosition) {
+                console.log('Raycast Grid Nodes snap:', position, '->', snappedPosition);
+                return snappedPosition;
+            }
             
-            // Additional validation to ensure the position is within grid bounds
+            // Fallback to Grid Nodes system calculation
+            var fallbackSnap = this.editor.gridNodes.snapToGrid(position);
             var config = this.editor.gridNodes.config;
             var spacing = config.spacing;
             var repetition = config.repetition;
             var maxCoord = repetition * spacing;
             
             // Ensure snapped position is strictly within bounds (positive coordinates only)
-            snappedPosition.x = Math.max(0, Math.min(maxCoord, snappedPosition.x));
-            snappedPosition.y = Math.max(0, Math.min(maxCoord, snappedPosition.y));
-            snappedPosition.z = Math.max(0, Math.min(maxCoord, snappedPosition.z));
+            fallbackSnap.x = Math.max(0, Math.min(maxCoord, fallbackSnap.x));
+            fallbackSnap.y = Math.max(0, Math.min(maxCoord, fallbackSnap.y));
+            fallbackSnap.z = Math.max(0, Math.min(maxCoord, fallbackSnap.z));
             
-            console.log('Grid Nodes snap:', position, '->', snappedPosition, 'bounds:', {
-                x: [0, maxCoord], y: [0, maxCoord], z: [0, maxCoord]
-            });
-            return snappedPosition;
+            console.log('Fallback Grid Nodes snap:', position, '->', fallbackSnap);
+            return fallbackSnap;
         }
         
         // Fallback to simple grid snapping
@@ -290,6 +293,99 @@ InteractiveNodeCreator.prototype = {
             Math.round(position.y / gridSize) * gridSize,
             Math.round(position.z / gridSize) * gridSize
         );
+    },
+    
+    raycastSnapToGridNodes: function(position) {
+        // Use proper raycasting from camera through mouse position to find grid nodes
+        if (!this.editor.gridNodes || !this.editor.gridNodes.gridContainer) {
+            return null;
+        }
+        
+        var tolerance = this.editor.gridNodes.config.snapTolerance || 0.25;
+        var gridNodes = [];
+        
+        // Collect all grid node meshes
+        this.editor.gridNodes.gridContainer.traverse(function(child) {
+            if (child.userData && child.userData.grid_node) {
+                gridNodes.push(child);
+            }
+        });
+        
+        if (gridNodes.length === 0) {
+            return null;
+        }
+        
+        // Use the existing raycaster that's already set up with camera and mouse position
+        var intersects = this.raycaster.intersectObjects(gridNodes, false);
+        
+        if (intersects.length > 0) {
+            // Get the closest intersection (first in array)
+            var intersection = intersects[0];
+            var gridNodePosition = intersection.object.position;
+            
+            // Check if the intersection point is within tolerance of the grid node center
+            var distanceToCenter = intersection.point.distanceTo(gridNodePosition);
+            
+            if (distanceToCenter <= tolerance) {
+                console.log('Raycast hit grid node at:', gridNodePosition, 'distance:', distanceToCenter);
+                return gridNodePosition.clone();
+            }
+        }
+        
+        // If no direct raycast hit, fall back to screen-space proximity
+        return this.findNearestGridNodeInScreenSpace(position, tolerance, gridNodes);
+    },
+    
+    findNearestGridNodeInScreenSpace: function(worldPosition, tolerance, gridNodes) {
+        // Project grid nodes to screen space and find the closest one to the mouse
+        var camera = this.editor.camera;
+        var viewport = document.getElementById('viewport');
+        var rect = viewport.getBoundingClientRect();
+        
+        // Convert mouse position to screen coordinates
+        var mouseScreenX = ((this.mouse.x + 1) / 2) * rect.width;
+        var mouseScreenY = ((-this.mouse.y + 1) / 2) * rect.height;
+        
+        var closestNode = null;
+        var minScreenDistance = Infinity;
+        var maxScreenDistance = 50; // Maximum screen pixels for snapping
+        
+        for (var i = 0; i < gridNodes.length; i++) {
+            var node = gridNodes[i];
+            var nodePosition = node.position.clone();
+            
+            // Project node position to screen space
+            nodePosition.project(camera);
+            
+            // Convert to screen coordinates
+            var nodeScreenX = ((nodePosition.x + 1) / 2) * rect.width;
+            var nodeScreenY = ((-nodePosition.y + 1) / 2) * rect.height;
+            
+            // Check if node is in front of camera (z < 1)
+            if (nodePosition.z < 1) {
+                // Calculate screen space distance
+                var screenDistance = Math.sqrt(
+                    Math.pow(mouseScreenX - nodeScreenX, 2) +
+                    Math.pow(mouseScreenY - nodeScreenY, 2)
+                );
+                
+                if (screenDistance < minScreenDistance && screenDistance <= maxScreenDistance) {
+                    // Also check 3D world distance as secondary criteria
+                    var worldDistance = worldPosition.distanceTo(node.position);
+                    if (worldDistance <= tolerance * 10) { // More lenient for screen-space snapping
+                        minScreenDistance = screenDistance;
+                        closestNode = node;
+                    }
+                }
+            }
+        }
+        
+        if (closestNode) {
+            console.log('Screen-space snap to grid node at:', closestNode.position, 'screen distance:', minScreenDistance);
+            return closestNode.position.clone();
+        }
+        
+        return null;
     },
     
     getSnapInfo: function(originalPosition, snappedPosition) {
