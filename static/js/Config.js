@@ -16,10 +16,10 @@ var Config = function () {
 		'project/editable': false,
 
 		'project/renderer': 'WebGLRenderer',
-		'project/renderer/antialias': false,
+		'project/renderer/antialias': true,
 		'project/renderer/gammaInput': false,
 		'project/renderer/gammaOutput': false,
-		'project/renderer/shadows': false,
+		'project/renderer/shadows': true,
 
 		'project/vr': false,
 

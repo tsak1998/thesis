@@ -12,8 +12,8 @@ var GridNodes = function(editor) {
     this.config = {
         enabled: false,
         spacing: 5.0,        // 5 meters spacing between nodes
-        repetition: 3,       // 3 repetitions in each positive direction
-        snapTolerance: 0.25, // Maximum distance for snapping to grid nodes
+        repetition: 1,       // 3 repetitions in each positive direction
+        snapTolerance: 0.1, // Maximum distance for snapping to grid nodes
         snapEnabled: true    // Enable/disable grid snapping
     };
     
