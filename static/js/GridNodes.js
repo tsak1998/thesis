@@ -1,6 +1,6 @@
 /**
  * Grid Nodes System for CAD Interface
- * Uses THREE.js GridHelper for efficient 3D grid visualization
+ * Simplified system with only faint blue nodes in positive coordinates
  */
 
 var GridNodes = function(editor) {
@@ -8,43 +8,20 @@ var GridNodes = function(editor) {
     this.editor = editor;
     this.signals = editor.signals;
     
-    // Grid configuration - NEW SPECIFICATIONS: 10m × 10m × 10m grid volume
+    // Simplified grid configuration - only spacing and repetition
     this.config = {
         enabled: false,
-        // Start position (origin)
-        startPosition: { x: 0, y: 0, z: 0 },
-        // Grid size (spacing between grid lines)
-        gridSize: 2.0, // 2.0 m spacing (changed from 0.5)
-        // Total size (extents)
-        totalSize: { x: 10, y: 10, z: 10 }, // 10 m extents in X, Y, Z
-        // Level height (between floors)
-        levelHeight: 10, // 10 m between floors
-        // Number of levels (base + extras)
-        numberOfLevels: 4, // base + 3 extras
-        transparency: 0.3, // Grid transparency (0-1) - semi-transparent
-        color: 0x888888, // Grid line color (gray)
-        centerLineColor: 0x444444, // Center line color (darker gray)
-        snapTolerance: 0.25, // Maximum distance for snapping to grid intersections
-        snapEnabled: true, // Enable/disable grid snapping
-        // Individual plane visibility
-        planes: {
-            xz: false, // Horizontal planes (XZ at different Y levels) - OFF
-            xy: false, // Vertical planes (XY at different Z levels) - OFF
-            yz: true   // Vertical planes (YZ at different X levels) - ACTIVE (YZ only)
-        }
+        spacing: 5.0,        // 5 meters spacing between nodes
+        repetition: 3,       // 3 repetitions in each positive direction
+        snapTolerance: 0.25, // Maximum distance for snapping to grid nodes
+        snapEnabled: true    // Enable/disable grid snapping
     };
     
     // Grid state
     this.gridContainer = null;
-    this.wireframeCube = null;
-    this.globalAxes = null;
+    this.gridNodes = [];     // Array to store the blue node meshes
+    this.nodePositions = []; // Array to store node positions for snapping
     this.isVisible = false;
-    this.gridHelpers = {
-        xz: [], // Horizontal planes (XZ at different Y levels)
-        xy: [], // Vertical planes (XY at different Z levels)
-        yz: []  // Vertical planes (YZ at different X levels)
-    };
-    this.nodePositions = [];
     
     // Visual feedback for snapping
     this.snapIndicator = null;
@@ -58,11 +35,9 @@ GridNodes.prototype = {
     
     init: function() {
         this.createGridContainer();
-        this.createWireframeCube();
-        this.createGlobalAxes();
         this.createSnapIndicator();
         this.setupEventListeners();
-        console.log('Grid Nodes system initialized with 10m × 10m × 10m grid volume');
+        console.log('Grid Nodes system initialized - simplified blue nodes only');
     },
     
     createSnapIndicator: function() {
@@ -130,200 +105,71 @@ GridNodes.prototype = {
         this.editor.scene.add(this.gridContainer);
     },
     
-    createWireframeCube: function() {
-        // Create wireframe cube to visualize the 10m × 10m × 10m grid volume
-        var size = this.config.totalSize;
-        var geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
-        var edges = new THREE.EdgesGeometry(geometry);
-        var material = new THREE.LineBasicMaterial({
-            color: 0x444444,
-            transparent: true,
-            opacity: 0.6,
-            linewidth: 8 // Make lines thicker
-        });
-        
-        this.wireframeCube = new THREE.LineSegments(edges, material);
-        this.wireframeCube.name = 'WireframeCube';
-        this.wireframeCube.position.set(
-            this.config.startPosition.x,
-            this.config.startPosition.y,
-            this.config.startPosition.z
-        );
-        
-        this.gridContainer.add(this.wireframeCube);
-        console.log('Created wireframe cube for 10m × 10m × 10m grid volume');
-    },
-    
-    createGlobalAxes: function() {
-        // Create global X-, Y-, Z-axes arrows (red, green, blue)
-        this.globalAxes = new THREE.Object3D();
-        this.globalAxes.name = 'GlobalAxes';
-        
-        var axisLength = 6; // 6 meter arrows
-        var origin = new THREE.Vector3(
-            this.config.startPosition.x,
-            this.config.startPosition.y,
-            this.config.startPosition.z
-        );
-        
-        // X-axis (Red)
-        var xDirection = new THREE.Vector3(1, 0, 0);
-        var xArrow = new THREE.ArrowHelper(xDirection, origin, axisLength, 0xff0000, axisLength * 0.2, axisLength * 0.1);
-        xArrow.name = 'X-Axis';
-        this.globalAxes.add(xArrow);
-        
-        // Y-axis (Green)
-        var yDirection = new THREE.Vector3(0, 1, 0);
-        var yArrow = new THREE.ArrowHelper(yDirection, origin, axisLength, 0x00ff00, axisLength * 0.2, axisLength * 0.1);
-        yArrow.name = 'Y-Axis';
-        this.globalAxes.add(yArrow);
-        
-        // Z-axis (Blue)
-        var zDirection = new THREE.Vector3(0, 0, 1);
-        var zArrow = new THREE.ArrowHelper(zDirection, origin, axisLength, 0x0000ff, axisLength * 0.2, axisLength * 0.1);
-        zArrow.name = 'Z-Axis';
-        this.globalAxes.add(zArrow);
-        
-        this.gridContainer.add(this.globalAxes);
-        console.log('Created global X-, Y-, Z-axes (red, green, blue)');
-    },
-    
     generateGrid: function() {
         this.clearGrid();
         
-        var config = this.config;
-        var planes = config.planes;
-        var totalSize = config.totalSize;
-        var gridSize = config.gridSize;
-        var numberOfLevels = config.numberOfLevels;
-        var levelHeight = config.levelHeight;
+        var spacing = this.config.spacing;
+        var repetition = this.config.repetition;
         
-        // Calculate number of divisions for each direction based on grid size
-        var divisionsX = Math.floor(totalSize.x / gridSize);
-        var divisionsY = Math.floor(totalSize.y / gridSize);
-        var divisionsZ = Math.floor(totalSize.z / gridSize);
+        // Create geometry and material for blue nodes
+        var nodeGeometry = new THREE.SphereGeometry(0.1, 8, 6); // Small spheres
+        var nodeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x4444ff, // Faint blue color
+            transparent: true,
+            opacity: 0.6
+        });
         
-        // Create XZ plane grids (horizontal) - floor levels
-        if (planes.xz) {
-            for (var level = 0; level < numberOfLevels; level++) {
-                var y = config.startPosition.y + (level * levelHeight / (numberOfLevels - 1)) - totalSize.y / 2;
-                
-                var gridXZ = new THREE.GridHelper(totalSize.x, divisionsX, config.centerLineColor, config.color);
-                gridXZ.position.set(config.startPosition.x, y, config.startPosition.z);
-                gridXZ.material.transparent = true;
-                gridXZ.material.opacity = config.transparency;
-                gridXZ.userData.planeType = 'xz';
-                gridXZ.userData.level = level;
-                this.gridHelpers.xz.push(gridXZ);
-                this.gridContainer.add(gridXZ);
-            }
-        }
-        
-        // Create XY plane grids (vertical) - elevation planes
-        if (planes.xy) {
-            var numVerticalPlanes = Math.floor(totalSize.z / gridSize) + 1;
-            for (var i = 0; i < numVerticalPlanes; i++) {
-                var z = config.startPosition.z - totalSize.z / 2 + (i * gridSize);
-                
-                var gridXY = new THREE.GridHelper(Math.max(totalSize.x, totalSize.y), Math.max(divisionsX, divisionsY), config.centerLineColor, config.color);
-                gridXY.rotation.x = Math.PI / 2;
-                gridXY.position.set(config.startPosition.x, config.startPosition.y, z);
-                gridXY.material.transparent = true;
-                gridXY.material.opacity = config.transparency * 0.6;
-                gridXY.userData.planeType = 'xy';
-                this.gridHelpers.xy.push(gridXY);
-                this.gridContainer.add(gridXY);
-            }
-        }
-        
-        // Create YZ plane grids (vertical) - side elevation planes
-        if (planes.yz) {
-            var numSidePlanes = Math.floor(totalSize.x / gridSize) + 1;
-            for (var j = 0; j < numSidePlanes; j++) {
-                var x = config.startPosition.x - totalSize.x / 2 + (j * gridSize);
-                
-                var gridYZ = new THREE.GridHelper(Math.max(totalSize.y, totalSize.z), Math.max(divisionsY, divisionsZ), config.centerLineColor, config.color);
-                gridYZ.rotation.z = Math.PI / 2;
-                gridYZ.position.set(x, config.startPosition.y, config.startPosition.z);
-                gridYZ.material.transparent = true;
-                gridYZ.material.opacity = config.transparency * 0.6;
-                gridYZ.userData.planeType = 'yz';
-                this.gridHelpers.yz.push(gridYZ);
-                this.gridContainer.add(gridYZ);
-            }
-        }
-        
-        // Generate node positions for snapping
-        this.generateNodePositions();
-        
-        var totalGrids = this.gridHelpers.xz.length + this.gridHelpers.xy.length + this.gridHelpers.yz.length;
-        console.log(`Generated 10m × 10m × 10m grid system - ${totalGrids} grid planes, ${this.nodePositions.length} snap points`);
-        console.log(`Grid spacing: ${gridSize}m, Levels: ${numberOfLevels}, Level height: ${levelHeight}m`);
-        console.log(`Plane visibility: XZ=${planes.xz}, XY=${planes.xy}, YZ=${planes.yz}`);
-        this.updateGridVisuals();
-    },
-    
-    generateNodePositions: function() {
-        // Generate snap points for the new grid system
-        this.nodePositions = [];
-        var config = this.config;
-        var totalSize = config.totalSize;
-        var gridSize = config.gridSize;
-        var startPos = config.startPosition;
-        
-        // Calculate number of grid points in each direction
-        var pointsX = Math.floor(totalSize.x / gridSize) + 1;
-        var pointsY = Math.floor(totalSize.y / gridSize) + 1;
-        var pointsZ = Math.floor(totalSize.z / gridSize) + 1;
-        
-        // Generate grid intersection points
-        for (var i = 0; i < pointsX; i++) {
-            for (var j = 0; j < pointsY; j++) {
-                for (var k = 0; k < pointsZ; k++) {
-                    var x = startPos.x - totalSize.x/2 + i * gridSize;
-                    var y = startPos.y - totalSize.y/2 + j * gridSize;
-                    var z = startPos.z - totalSize.z/2 + k * gridSize;
-                    this.nodePositions.push(new THREE.Vector3(x, y, z));
+        // Generate nodes only in positive coordinates
+        for (var x = 0; x <= repetition; x++) {
+            for (var y = 0; y <= repetition; y++) {
+                for (var z = 0; z <= repetition; z++) {
+                    var position = new THREE.Vector3(
+                        x * spacing,
+                        y * spacing,
+                        z * spacing
+                    );
+                    
+                    // Create node mesh
+                    var nodeMesh = new THREE.Mesh(nodeGeometry, nodeMaterial);
+                    nodeMesh.position.copy(position);
+                    nodeMesh.name = 'GridNode';
+                    
+                    // Add metadata for snap detection
+                    nodeMesh.userData.grid_node = true;
+                    nodeMesh.userData.gridPosition = position.clone();
+                    
+                    // Add to container and arrays
+                    this.gridContainer.add(nodeMesh);
+                    this.gridNodes.push(nodeMesh);
+                    this.nodePositions.push(position.clone());
                 }
             }
         }
         
-        console.log(`Generated ${this.nodePositions.length} snap points (${pointsX}×${pointsY}×${pointsZ})`);
+        var totalNodes = this.gridNodes.length;
+        console.log(`Generated ${totalNodes} blue grid nodes in positive coordinates`);
+        console.log(`Grid spacing: ${spacing}m, Repetition: ${repetition} (${repetition+1}×${repetition+1}×${repetition+1} grid)`);
+        
+        // Trigger render update
+        if (this.editor.signals && this.editor.signals.sceneGraphChanged) {
+            this.editor.signals.sceneGraphChanged.dispatch();
+        }
     },
     
     clearGrid: function() {
-        // Remove all grid helpers by plane type
-        var planeTypes = ['xz', 'xy', 'yz'];
-        for (var p = 0; p < planeTypes.length; p++) {
-            var planeType = planeTypes[p];
-            for (var i = 0; i < this.gridHelpers[planeType].length; i++) {
-                var grid = this.gridHelpers[planeType][i];
-                if (grid.material) grid.material.dispose();
-                if (grid.geometry) grid.geometry.dispose();
-                this.gridContainer.remove(grid);
-            }
-            this.gridHelpers[planeType] = [];
+        // Remove all grid nodes
+        for (var i = 0; i < this.gridNodes.length; i++) {
+            var node = this.gridNodes[i];
+            if (node.material) node.material.dispose();
+            if (node.geometry) node.geometry.dispose();
+            this.gridContainer.remove(node);
         }
         
-        // Clean up wireframe cube
-        if (this.wireframeCube) {
-            if (this.wireframeCube.material) this.wireframeCube.material.dispose();
-            if (this.wireframeCube.geometry) this.wireframeCube.geometry.dispose();
-            this.gridContainer.remove(this.wireframeCube);
-            this.wireframeCube = null;
-        }
-        
-        // Clean up global axes
-        if (this.globalAxes) {
-            this.globalAxes.traverse(function(child) {
-                if (child.material) child.material.dispose();
-                if (child.geometry) child.geometry.dispose();
-            });
-            this.gridContainer.remove(this.globalAxes);
-            this.globalAxes = null;
-        }
-        
+        // Clear arrays
+        this.gridNodes = [];
         this.nodePositions = [];
+        
+        console.log('Grid nodes cleared');
     },
     
     toggle: function() {
@@ -331,18 +177,11 @@ GridNodes.prototype = {
         this.setVisible(this.config.enabled);
         
         if (this.config.enabled) {
-            // Recreate wireframe cube and axes if they don't exist
-            if (!this.wireframeCube) {
-                this.createWireframeCube();
-            }
-            if (!this.globalAxes) {
-                this.createGlobalAxes();
-            }
-            // Generate grid if it doesn't exist
-            var totalGrids = this.gridHelpers.xz.length + this.gridHelpers.xy.length + this.gridHelpers.yz.length;
-            if (totalGrids === 0) {
-                this.generateGrid();
-            }
+            // Generate grid nodes when enabled
+            this.generateGrid();
+        } else {
+            // Clear grid nodes when disabled
+            this.clearGrid();
         }
         
         console.log('Grid Nodes', this.config.enabled ? 'enabled' : 'disabled');
@@ -361,129 +200,28 @@ GridNodes.prototype = {
         }
     },
     
-    updateGridSize: function(gridSize) {
-        this.config.gridSize = Math.max(0.1, parseFloat(gridSize) || 0.5);
+    updateSpacing: function(spacing) {
+        this.config.spacing = Math.max(0.1, parseFloat(spacing) || 5.0);
         
         if (this.config.enabled) {
             this.generateGrid();
         }
-    },
-    
-    updateTotalSize: function(sizeX, sizeY, sizeZ) {
-        this.config.totalSize.x = Math.max(1, parseFloat(sizeX) || 10);
-        this.config.totalSize.y = Math.max(1, parseFloat(sizeY) || 10);
-        this.config.totalSize.z = Math.max(1, parseFloat(sizeZ) || 10);
         
-        if (this.config.enabled) {
-            // Recreate wireframe cube with new size
-            this.clearGrid();
-            this.createWireframeCube();
-            this.createGlobalAxes();
-            this.generateGrid();
-        }
+        console.log('Grid spacing updated to:', this.config.spacing);
     },
     
-    updateNumberOfLevels: function(levels) {
-        this.config.numberOfLevels = Math.max(1, parseInt(levels) || 4);
+    updateRepetition: function(repetition) {
+        this.config.repetition = Math.max(1, parseInt(repetition) || 3);
         
         if (this.config.enabled) {
             this.generateGrid();
         }
-    },
-    
-    updateLevelHeight: function(height) {
-        this.config.levelHeight = Math.max(1, parseFloat(height) || 10);
         
-        if (this.config.enabled) {
-            this.generateGrid();
-        }
-    },
-    
-    updateStartPosition: function(x, y, z) {
-        this.config.startPosition.x = parseFloat(x) || 0;
-        this.config.startPosition.y = parseFloat(y) || 0;
-        this.config.startPosition.z = parseFloat(z) || 0;
-        
-        if (this.config.enabled) {
-            // Recreate everything with new start position
-            this.clearGrid();
-            this.createWireframeCube();
-            this.createGlobalAxes();
-            this.generateGrid();
-        }
-    },
-    
-    updateTransparency: function(transparency) {
-        this.config.transparency = Math.max(0.1, Math.min(1.0, parseFloat(transparency) || 0.3));
-        this.updateGridVisuals();
-    },
-    
-    updateGridVisuals: function() {
-        // Update material properties for all grid helpers by plane type
-        var planeTypes = ['xz', 'xy', 'yz'];
-        for (var p = 0; p < planeTypes.length; p++) {
-            var planeType = planeTypes[p];
-            for (var i = 0; i < this.gridHelpers[planeType].length; i++) {
-                var grid = this.gridHelpers[planeType][i];
-                if (grid.material) {
-                    // XZ plane grids (horizontal) get full opacity
-                    if (planeType === 'xz') {
-                        grid.material.opacity = this.config.transparency;
-                    } else {
-                        // Vertical grids get slightly reduced opacity but more visible than before
-                        grid.material.opacity = this.config.transparency * 0.7;
-                    }
-                    grid.material.needsUpdate = true;
-                }
-            }
-        }
-    },
-    
-    togglePlane: function(planeType) {
-        if (!this.config.planes.hasOwnProperty(planeType)) {
-            console.warn('Invalid plane type:', planeType);
-            return false;
-        }
-        
-        this.config.planes[planeType] = !this.config.planes[planeType];
-        
-        // Show/hide existing grids of this type
-        for (var i = 0; i < this.gridHelpers[planeType].length; i++) {
-            var grid = this.gridHelpers[planeType][i];
-            grid.visible = this.config.planes[planeType];
-        }
-        
-        // If grid is enabled, regenerate to add/remove planes
-        if (this.config.enabled) {
-            this.generateGrid();
-        }
-        
-        console.log(`Plane ${planeType.toUpperCase()} toggled:`, this.config.planes[planeType]);
-        return this.config.planes[planeType];
-    },
-    
-    setPlaneVisibility: function(planeType, visible) {
-        if (!this.config.planes.hasOwnProperty(planeType)) {
-            console.warn('Invalid plane type:', planeType);
-            return;
-        }
-        
-        this.config.planes[planeType] = visible;
-        
-        // Show/hide existing grids of this type
-        for (var i = 0; i < this.gridHelpers[planeType].length; i++) {
-            var grid = this.gridHelpers[planeType][i];
-            grid.visible = visible;
-        }
-        
-        // If grid is enabled, regenerate to add/remove planes
-        if (this.config.enabled) {
-            this.generateGrid();
-        }
+        console.log('Grid repetition updated to:', this.config.repetition);
     },
     
     setSnapTolerance: function(tolerance) {
-        this.config.snapTolerance = Math.max(0.1, Math.min(10.0, parseFloat(tolerance) || 1.0));
+        this.config.snapTolerance = Math.max(0.1, Math.min(10.0, parseFloat(tolerance) || 0.25));
         console.log('Grid snap tolerance set to:', this.config.snapTolerance);
     },
     
@@ -499,7 +237,7 @@ GridNodes.prototype = {
     },
     
     getNodeAt: function(position, tolerance) {
-        tolerance = tolerance || 0.5;
+        tolerance = tolerance || this.config.snapTolerance;
         
         if (!this.nodePositions || this.nodePositions.length === 0) {
             return null;
@@ -520,56 +258,23 @@ GridNodes.prototype = {
     snapToGrid: function(position, tolerance) {
         if (!this.config.enabled || !this.config.snapEnabled) return position;
         
-        tolerance = tolerance || this.config.snapTolerance || 0.25;
-        var snappedPosition = position.clone();
+        tolerance = tolerance || this.config.snapTolerance;
         
-        // Calculate grid bounds
-        var totalSize = this.config.totalSize;
-        var startPos = this.config.startPosition;
-        var gridSize = this.config.gridSize;
+        // Find nearest grid node
+        var nearestNode = this.findNearestGridNode(position);
         
-        var halfSizeX = totalSize.x / 2;
-        var halfSizeY = totalSize.y / 2;
-        var halfSizeZ = totalSize.z / 2;
-        
-        // Calculate grid bounds
-        var minX = startPos.x - halfSizeX;
-        var maxX = startPos.x + halfSizeX;
-        var minY = startPos.y - halfSizeY;
-        var maxY = startPos.y + halfSizeY;
-        var minZ = startPos.z - halfSizeZ;
-        var maxZ = startPos.z + halfSizeZ;
-        
-        // First, clamp the position to grid bounds
-        var clampedPosition = new THREE.Vector3(
-            Math.max(minX, Math.min(maxX, position.x)),
-            Math.max(minY, Math.min(maxY, position.y)),
-            Math.max(minZ, Math.min(maxZ, position.z))
-        );
-        
-        // Find nearest grid intersection point within bounds
-        var nearestGridPoint = this.findNearestGridIntersectionWithinBounds(clampedPosition);
-        
-        if (nearestGridPoint) {
-            var distance = clampedPosition.distanceTo(nearestGridPoint);
+        if (nearestNode) {
+            var distance = position.distanceTo(nearestNode);
             
-            // Always snap to nearest grid point if within bounds, regardless of tolerance for better UX
-            // But still respect tolerance for visual feedback
-            if (distance <= tolerance || this.config.snapEnabled) {
-                // Double-check that snapped position is within bounds
-                if (nearestGridPoint.x >= minX && nearestGridPoint.x <= maxX &&
-                    nearestGridPoint.y >= minY && nearestGridPoint.y <= maxY &&
-                    nearestGridPoint.z >= minZ && nearestGridPoint.z <= maxZ) {
-                    return nearestGridPoint;
-                }
+            if (distance <= tolerance) {
+                return nearestNode.clone();
             }
         }
         
-        // If no valid grid point found, return the clamped position (still within bounds)
-        return clampedPosition;
+        return position;
     },
     
-    findNearestGridIntersection: function(position) {
+    findNearestGridNode: function(position) {
         if (!this.nodePositions || this.nodePositions.length === 0) {
             return null;
         }
@@ -577,7 +282,7 @@ GridNodes.prototype = {
         var nearestPoint = null;
         var minDistance = Infinity;
         
-        // Find the closest grid intersection point
+        // Find the closest grid node
         for (var i = 0; i < this.nodePositions.length; i++) {
             var nodePos = this.nodePositions[i];
             if (nodePos && nodePos.distanceTo) {
@@ -592,57 +297,21 @@ GridNodes.prototype = {
         return nearestPoint;
     },
     
-    findNearestGridIntersectionWithinBounds: function(position) {
-        if (!this.nodePositions || this.nodePositions.length === 0) {
-            return null;
-        }
-        
-        var totalSize = this.config.totalSize;
-        var startPos = this.config.startPosition;
-        
-        var minX = startPos.x - totalSize.x / 2;
-        var maxX = startPos.x + totalSize.x / 2;
-        var minY = startPos.y - totalSize.y / 2;
-        var maxY = startPos.y + totalSize.y / 2;
-        var minZ = startPos.z - totalSize.z / 2;
-        var maxZ = startPos.z + totalSize.z / 2;
-        
-        var nearestPoint = null;
-        var minDistance = Infinity;
-        
-        // Find the closest grid intersection point that is within bounds
-        for (var i = 0; i < this.nodePositions.length; i++) {
-            var nodePos = this.nodePositions[i];
-            if (nodePos && nodePos.distanceTo) {
-                // Check if this grid point is within bounds
-                if (nodePos.x >= minX && nodePos.x <= maxX &&
-                    nodePos.y >= minY && nodePos.y <= maxY &&
-                    nodePos.z >= minZ && nodePos.z <= maxZ) {
-                    
-                    var distance = nodePos.distanceTo(position);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        nearestPoint = nodePos.clone();
-                    }
-                }
-            }
-        }
-        
-        return nearestPoint;
-    },
-    
     snapToGridWithFeedback: function(position, tolerance, showVisual) {
-        if (!this.config.enabled || !this.config.snapEnabled) return { position: position, snapped: false };
+        if (!this.config.enabled || !this.config.snapEnabled) {
+            return { position: position, snapped: false };
+        }
         
-        tolerance = tolerance || this.config.snapTolerance || 1.0;
+        tolerance = tolerance || this.config.snapTolerance;
         showVisual = showVisual !== false; // Default to true
-        var nearestGridPoint = this.findNearestGridIntersection(position);
         
-        if (nearestGridPoint) {
-            var distance = position.distanceTo(nearestGridPoint);
+        var nearestNode = this.findNearestGridNode(position);
+        
+        if (nearestNode) {
+            var distance = position.distanceTo(nearestNode);
             
             if (distance <= tolerance) {
-                var snappedPosition = this.snapToGrid(position, tolerance);
+                var snappedPosition = nearestNode.clone();
                 
                 // Show visual feedback if requested
                 if (showVisual) {
@@ -652,7 +321,7 @@ GridNodes.prototype = {
                 return {
                     position: snappedPosition,
                     snapped: true,
-                    snapPoint: nearestGridPoint,
+                    snapPoint: nearestNode,
                     distance: distance
                 };
             }
@@ -663,42 +332,27 @@ GridNodes.prototype = {
     
     getGridInfo: function() {
         var config = this.config;
-        var totalSize = config.totalSize;
-        var startPos = config.startPosition;
+        var spacing = config.spacing;
+        var repetition = config.repetition;
         
+        // Calculate grid bounds (positive coordinates only)
         var bounds = {
-            min: new THREE.Vector3(
-                startPos.x - totalSize.x/2,
-                startPos.y - totalSize.y/2,
-                startPos.z - totalSize.z/2
-            ),
+            min: new THREE.Vector3(0, 0, 0),
             max: new THREE.Vector3(
-                startPos.x + totalSize.x/2,
-                startPos.y + totalSize.y/2,
-                startPos.z + totalSize.z/2
+                repetition * spacing,
+                repetition * spacing,
+                repetition * spacing
             )
         };
-        
-        var totalGrids = this.gridHelpers.xz.length + this.gridHelpers.xy.length + this.gridHelpers.yz.length;
         
         return {
             enabled: config.enabled,
             visible: this.isVisible,
-            gridCount: totalGrids,
+            nodeCount: this.gridNodes.length,
             snapPointCount: this.nodePositions.length,
-            gridSize: config.gridSize,
-            totalSize: config.totalSize,
-            startPosition: config.startPosition,
-            numberOfLevels: config.numberOfLevels,
-            levelHeight: config.levelHeight,
-            transparency: config.transparency,
-            planes: config.planes,
+            spacing: config.spacing,
+            repetition: config.repetition,
             bounds: bounds,
-            planeCount: {
-                xz: this.gridHelpers.xz.length,
-                xy: this.gridHelpers.xy.length,
-                yz: this.gridHelpers.yz.length
-            },
             snap: {
                 enabled: config.snapEnabled,
                 tolerance: config.snapTolerance

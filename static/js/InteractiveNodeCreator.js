@@ -242,23 +242,19 @@ InteractiveNodeCreator.prototype = {
         }
         
         var config = this.editor.gridNodes.config;
-        var totalSize = config.totalSize;
-        var startPos = config.startPosition;
+        var spacing = config.spacing;
+        var repetition = config.repetition;
         
-        var minX = startPos.x - totalSize.x / 2;
-        var maxX = startPos.x + totalSize.x / 2;
-        var minY = startPos.y - totalSize.y / 2;
-        var maxY = startPos.y + totalSize.y / 2;
-        var minZ = startPos.z - totalSize.z / 2;
-        var maxZ = startPos.z + totalSize.z / 2;
+        // Grid bounds are from 0 to (repetition * spacing) in all axes
+        var maxCoord = repetition * spacing;
         
-        var withinBounds = (position.x >= minX && position.x <= maxX &&
-                           position.y >= minY && position.y <= maxY &&
-                           position.z >= minZ && position.z <= maxZ);
+        var withinBounds = (position.x >= 0 && position.x <= maxCoord &&
+                           position.y >= 0 && position.y <= maxCoord &&
+                           position.z >= 0 && position.z <= maxCoord);
         
         if (!withinBounds) {
             console.log('Position outside bounds:', position, 'bounds:', {
-                x: [minX, maxX], y: [minY, maxY], z: [minZ, maxZ]
+                x: [0, maxCoord], y: [0, maxCoord], z: [0, maxCoord]
             });
         }
         
@@ -272,23 +268,17 @@ InteractiveNodeCreator.prototype = {
             
             // Additional validation to ensure the position is within grid bounds
             var config = this.editor.gridNodes.config;
-            var totalSize = config.totalSize;
-            var startPos = config.startPosition;
+            var spacing = config.spacing;
+            var repetition = config.repetition;
+            var maxCoord = repetition * spacing;
             
-            var minX = startPos.x - totalSize.x / 2;
-            var maxX = startPos.x + totalSize.x / 2;
-            var minY = startPos.y - totalSize.y / 2;
-            var maxY = startPos.y + totalSize.y / 2;
-            var minZ = startPos.z - totalSize.z / 2;
-            var maxZ = startPos.z + totalSize.z / 2;
-            
-            // Ensure snapped position is strictly within bounds
-            snappedPosition.x = Math.max(minX, Math.min(maxX, snappedPosition.x));
-            snappedPosition.y = Math.max(minY, Math.min(maxY, snappedPosition.y));
-            snappedPosition.z = Math.max(minZ, Math.min(maxZ, snappedPosition.z));
+            // Ensure snapped position is strictly within bounds (positive coordinates only)
+            snappedPosition.x = Math.max(0, Math.min(maxCoord, snappedPosition.x));
+            snappedPosition.y = Math.max(0, Math.min(maxCoord, snappedPosition.y));
+            snappedPosition.z = Math.max(0, Math.min(maxCoord, snappedPosition.z));
             
             console.log('Grid Nodes snap:', position, '->', snappedPosition, 'bounds:', {
-                x: [minX, maxX], y: [minY, maxY], z: [minZ, maxZ]
+                x: [0, maxCoord], y: [0, maxCoord], z: [0, maxCoord]
             });
             return snappedPosition;
         }
@@ -427,30 +417,27 @@ InteractiveNodeCreator.prototype = {
         var config = this.editor.gridNodes.config;
         if (!config || !config.enabled) return;
         
-        var gridSize = config.gridSize;
-        var totalSize = config.totalSize;
-        var startPos = config.startPosition;
+        var spacing = config.spacing;
+        var repetition = config.repetition;
         
-        // Calculate number of grid lines in each direction
-        var pointsX = Math.floor(totalSize.x / gridSize) + 1;
-        var pointsY = Math.floor(totalSize.y / gridSize) + 1;
-        var pointsZ = Math.floor(totalSize.z / gridSize) + 1;
+        // Calculate number of grid lines in each direction (positive coordinates only)
+        var pointsPerAxis = repetition + 1;
         
         // Create horizontal planes (XZ planes at different Y levels)
-        for (var i = 0; i < pointsY; i++) {
-            var y = startPos.y - totalSize.y/2 + i * gridSize;
+        for (var i = 0; i < pointsPerAxis; i++) {
+            var y = i * spacing;
             this.gridPlanes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y));
         }
         
         // Create vertical planes (XY planes at different Z levels)
-        for (var j = 0; j < pointsZ; j++) {
-            var z = startPos.z - totalSize.z/2 + j * gridSize;
+        for (var j = 0; j < pointsPerAxis; j++) {
+            var z = j * spacing;
             this.gridPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, 1), -z));
         }
         
         // Create side planes (YZ planes at different X levels)
-        for (var k = 0; k < pointsX; k++) {
-            var x = startPos.x - totalSize.x/2 + k * gridSize;
+        for (var k = 0; k < pointsPerAxis; k++) {
+            var x = k * spacing;
             this.gridPlanes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), -x));
         }
     },
@@ -473,19 +460,13 @@ InteractiveNodeCreator.prototype = {
                 var isWithinBounds = true;
                 if (this.editor.gridNodes && this.editor.gridNodes.config.enabled) {
                     var config = this.editor.gridNodes.config;
-                    var totalSize = config.totalSize;
-                    var startPos = config.startPosition;
+                    var spacing = config.spacing;
+                    var repetition = config.repetition;
+                    var maxCoord = repetition * spacing;
                     
-                    var minX = startPos.x - totalSize.x / 2;
-                    var maxX = startPos.x + totalSize.x / 2;
-                    var minY = startPos.y - totalSize.y / 2;
-                    var maxY = startPos.y + totalSize.y / 2;
-                    var minZ = startPos.z - totalSize.z / 2;
-                    var maxZ = startPos.z + totalSize.z / 2;
-                    
-                    isWithinBounds = (intersectPoint.x >= minX && intersectPoint.x <= maxX &&
-                                    intersectPoint.y >= minY && intersectPoint.y <= maxY &&
-                                    intersectPoint.z >= minZ && intersectPoint.z <= maxZ);
+                    isWithinBounds = (intersectPoint.x >= 0 && intersectPoint.x <= maxCoord &&
+                                    intersectPoint.y >= 0 && intersectPoint.y <= maxCoord &&
+                                    intersectPoint.z >= 0 && intersectPoint.z <= maxCoord);
                 }
                 
                 if (isWithinBounds) {

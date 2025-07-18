@@ -16,7 +16,7 @@ var CADToolbar = function(editor) {
     this.container = new UI.Panel();
     this.container.setClass('cad-toolbar');
     this.container.setPosition('absolute');
-    this.container.setTop('10px');
+    this.container.setBottom('10px');
     this.container.setLeft('10px');
     this.container.setWidth('300px');
     this.container.setHeight('600px');
@@ -629,9 +629,10 @@ CADToolbar.prototype = {
         if (!this.gridStatusText) return;
         
         if (this.editor.gridNodes && this.editor.gridNodes.config.enabled) {
-            var gridSize = this.editor.gridNodes.config.gridSize;
-            var totalSize = this.editor.gridNodes.config.totalSize;
-            this.gridStatusText.setValue(`Grid: ${gridSize}m spacing, ${totalSize.x}×${totalSize.y}×${totalSize.z}m`);
+            var spacing = this.editor.gridNodes.config.spacing;
+            var repetition = this.editor.gridNodes.config.repetition;
+            var maxCoord = repetition * spacing;
+            this.gridStatusText.setValue(`Grid: ${spacing}m spacing, ${repetition+1}×${repetition+1}×${repetition+1} nodes (0-${maxCoord}m)`);
             this.gridStatusText.setColor('#4CAF50');
         } else {
             this.gridStatusText.setValue('No grid');

@@ -22,8 +22,8 @@ ModernToolbar.prototype = {
         this.container.className = 'modern-toolbar';
         this.container.style.cssText = `
             position: fixed;
-            top: 70px;
-            left: 10px;
+            bottom: 10px;
+            right: 10px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.15);
