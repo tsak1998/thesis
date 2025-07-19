@@ -23,6 +23,9 @@ Open **[http://localhost:5000/](http://localhost:5000/)** in your browser.
    * **Grid Repetition** – number of grid layers
 4. Close the modal.
 
+![Two-storey frame concept](screenshots/image_grids.png)
+
+
 ### 2. Place Structural Nodes
 
 1. Open the **CAD Tools** modal.
