@@ -39,7 +39,7 @@ Open **[http://localhost:5000/](http://localhost:5000/)** in your browser.
    * Press **Esc** to exit, or **C** to toggle continuous-creation mode.
 
 
-![Two-storey frame concept](screenshots/two_storey_example.png)
+![Two-storey frame concept](screenshots/image.png)
 
 
 ```
