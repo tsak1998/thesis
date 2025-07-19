@@ -38,5 +38,9 @@ Open **[http://localhost:5000/](http://localhost:5000/)** in your browser.
    * Click consecutive nodes to create members.
    * Press **Esc** to exit, or **C** to toggle continuous-creation mode.
 
+
+![Two-storey frame concept](screenshots/two_storey_example.png)
+
+
 ```
 ```
