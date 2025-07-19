@@ -15,7 +15,7 @@ var InteractiveElementCreator = function(editor) {
     this.elementCount = 1;
     this.currentSectionId = 1;
     this.validator = new ValidationHelper();
-    this.continuousMode = false; // Flag for continuous element creation
+    this.continuousMode = true; // Flag for continuous element creation
     
     // Materials for elements - using utility function
     this.elementMaterial = LineUtils.createStandardLineMaterial({
@@ -140,7 +140,7 @@ InteractiveElementCreator.prototype = {
     activate: function() {
         this.isActive = true;
         this.selectedNodes = [];
-        this.continuousMode = false;
+        this.continuousMode = true;
         this.updateElementCount();
         
         // Add event listeners
